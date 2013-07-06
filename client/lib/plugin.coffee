@@ -11,11 +11,20 @@ getScript = wiki.getScript = (url, callback = () ->) ->
   if scripts[url]?
     callback()
   else
+    ###
     $.getScript(url)
       .done ->
         scripts[url] = true
         callback()
       .fail ->
+        callback()
+    ###    
+    $.ajax
+      cache: true
+      dataType: "script"
+      url: url
+      success: ->
+        scripts[url] = true
         callback()
 
 plugin.get = wiki.getPlugin = (name, callback) ->

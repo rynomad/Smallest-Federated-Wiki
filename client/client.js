@@ -14,6 +14,8 @@ wiki = {
   createSynopsis: createSynopsis
 };
 
+wiki.persona = require('./persona.coffee');
+
 wiki.log = function() {
   var things;
   things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
@@ -104,7 +106,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./synopsis.coffee":4,"./persona.coffee":5}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -472,34 +474,57 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./pageHandler.coffee":6,"./plugin.coffee":7,"./state.coffee":8,"./active.coffee":9,"./refresh.coffee":10}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
+},{"./wiki.coffee":2,"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./active.coffee":10,"./refresh.coffee":11}],5:[function(require,module,exports){
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onmatch: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
     }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
 };
 
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -553,7 +578,149 @@ active.set = function(el) {
 };
 
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],9:[function(require,module,exports){
+var active, state, wiki,
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+module.exports = state = {};
+
+state.pagesInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return el.id;
+  }));
+};
+
+state.urlPages = function() {
+  var i;
+  return ((function() {
+    var _i, _len, _ref, _results;
+    _ref = $(location).attr('pathname').split('/');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+      i = _ref[_i];
+      _results.push(i);
+    }
+    return _results;
+  })()).slice(1);
+};
+
+state.locsInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return $(el).data('site') || 'view';
+  }));
+};
+
+state.urlLocs = function() {
+  var j, _i, _len, _ref, _results;
+  _ref = $(location).attr('pathname').split('/').slice(1);
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+    j = _ref[_i];
+    _results.push(j);
+  }
+  return _results;
+};
+
+state.setUrl = function() {
+  var idx, locs, page, pages, url, _ref;
+  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+  if (history && history.pushState) {
+    locs = state.locsInDom();
+    pages = state.pagesInDom();
+    url = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
+        page = pages[idx];
+        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
+      }
+      return _results;
+    })()).join('');
+    if (url !== $(location).attr('pathname')) {
+      return history.pushState(null, null, url);
+    }
+  }
+};
+
+state.show = function(e) {
+  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
+  oldPages = state.pagesInDom();
+  newPages = state.urlPages();
+  oldLocs = state.locsInDom();
+  newLocs = state.urlLocs();
+  if (!location.pathname || location.pathname === '/') {
+    return;
+  }
+  previous = $('.page').eq(0);
+  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
+    name = newPages[idx];
+    if (name !== oldPages[idx]) {
+      old = $('.page').eq(idx);
+      if (old) {
+        old.remove();
+      }
+      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
+    }
+    previous = $('.page').eq(idx);
+  }
+  previous.nextAll().remove();
+  active.set($('.page').last());
+  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+};
+
+state.first = function() {
+  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
+  state.setUrl();
+  firstUrlPages = state.urlPages();
+  firstUrlLocs = state.urlLocs();
+  oldPages = state.pagesInDom();
+  _results = [];
+  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
+    urlPage = firstUrlPages[idx];
+    if (__indexOf.call(oldPages, urlPage) < 0) {
+      if (urlPage !== '') {
+        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
+      } else {
+        _results.push(void 0);
+      }
+    }
+  }
+  return _results;
+};
+
+
+},{"./wiki.coffee":2,"./active.coffee":10}],6:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -681,7 +848,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./wiki.coffee":2}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -823,122 +990,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":5,"./wiki.coffee":2}],8:[function(require,module,exports){
-var active, state, wiki,
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-module.exports = state = {};
-
-state.pagesInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return el.id;
-  }));
-};
-
-state.urlPages = function() {
-  var i;
-  return ((function() {
-    var _i, _len, _ref, _results;
-    _ref = $(location).attr('pathname').split('/');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-      i = _ref[_i];
-      _results.push(i);
-    }
-    return _results;
-  })()).slice(1);
-};
-
-state.locsInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return $(el).data('site') || 'view';
-  }));
-};
-
-state.urlLocs = function() {
-  var j, _i, _len, _ref, _results;
-  _ref = $(location).attr('pathname').split('/').slice(1);
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-    j = _ref[_i];
-    _results.push(j);
-  }
-  return _results;
-};
-
-state.setUrl = function() {
-  var idx, locs, page, pages, url, _ref;
-  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-  if (history && history.pushState) {
-    locs = state.locsInDom();
-    pages = state.pagesInDom();
-    url = ((function() {
-      var _i, _len, _results;
-      _results = [];
-      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
-        page = pages[idx];
-        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
-      }
-      return _results;
-    })()).join('');
-    if (url !== $(location).attr('pathname')) {
-      return history.pushState(null, null, url);
-    }
-  }
-};
-
-state.show = function(e) {
-  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
-  oldPages = state.pagesInDom();
-  newPages = state.urlPages();
-  oldLocs = state.locsInDom();
-  newLocs = state.urlLocs();
-  if (!location.pathname || location.pathname === '/') {
-    return;
-  }
-  previous = $('.page').eq(0);
-  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
-    name = newPages[idx];
-    if (name !== oldPages[idx]) {
-      old = $('.page').eq(idx);
-      if (old) {
-        old.remove();
-      }
-      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
-    }
-    previous = $('.page').eq(idx);
-  }
-  previous.nextAll().remove();
-  active.set($('.page').last());
-  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-};
-
-state.first = function() {
-  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
-  state.setUrl();
-  firstUrlPages = state.urlPages();
-  firstUrlLocs = state.urlLocs();
-  oldPages = state.pagesInDom();
-  _results = [];
-  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
-    urlPage = firstUrlPages[idx];
-    if (__indexOf.call(oldPages, urlPage) < 0) {
-      if (urlPage !== '') {
-        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
-      } else {
-        _results.push(void 0);
-      }
-    }
-  }
-  return _results;
-};
-
-
-},{"./wiki.coffee":2,"./active.coffee":9}],6:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1163,7 +1215,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./state.coffee":8,"./revision.coffee":11,"./addToJournal.coffee":12,"underscore":13}],10:[function(require,module,exports){
+},{"./wiki.coffee":2,"./util.coffee":6,"./state.coffee":9,"./revision.coffee":12,"./addToJournal.coffee":13,"underscore":14}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1529,7 +1581,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./util.coffee":5,"./pageHandler.coffee":6,"./plugin.coffee":7,"./state.coffee":8,"./neighborhood.coffee":14,"./addToJournal.coffee":12,"./wiki.coffee":2,"underscore":13}],13:[function(require,module,exports){
+},{"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./neighborhood.coffee":15,"./addToJournal.coffee":13,"./wiki.coffee":2,"underscore":14}],14:[function(require,module,exports){
 (function(){//     Underscore.js 1.4.4
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -2758,7 +2810,7 @@ module.exports = refresh = wiki.refresh = function() {
 }).call(this);
 
 })()
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var create;
 
 create = function(revIndex, data) {
@@ -2824,7 +2876,7 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var util;
 
 util = require('./util.coffee');
@@ -2852,7 +2904,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":5}],14:[function(require,module,exports){
+},{"./util.coffee":6}],15:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3003,7 +3055,7 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./active.coffee":9,"./util.coffee":5,"./search.coffee":15,"underscore":13}],15:[function(require,module,exports){
+},{"./wiki.coffee":2,"./active.coffee":10,"./util.coffee":6,"./search.coffee":16,"underscore":14}],16:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3058,5 +3110,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./active.coffee":9}]},{},[1])
+},{"./wiki.coffee":2,"./util.coffee":6,"./active.coffee":10}]},{},[1])
 ;

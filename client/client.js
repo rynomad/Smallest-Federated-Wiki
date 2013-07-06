@@ -699,11 +699,23 @@ getScript = wiki.getScript = function(url, callback) {
   if (scripts[url] != null) {
     return callback();
   } else {
-    return $.getScript(url).done(function() {
-      scripts[url] = true;
-      return callback();
-    }).fail(function() {
-      return callback();
+    /*
+    $.getScript(url)
+      .done ->
+        scripts[url] = true
+        callback()
+      .fail ->
+        callback()
+    */
+
+    return $.ajax({
+      cache: true,
+      dataType: "script",
+      url: url,
+      success: function() {
+        scripts[url] = true;
+        return callback();
+      }
     });
   }
 };

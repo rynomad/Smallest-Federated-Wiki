@@ -376,6 +376,8 @@ module.exports = exports = (argv) ->
         res.send(page, status)
       # Using Coffee-Scripts implicit returns we assign page.story to the
       # result of a list comprehension by way of a switch expression.
+      if owner?
+        page.steward = owner
       try
         page.story = switch action.type
           when 'move'
@@ -403,6 +405,8 @@ module.exports = exports = (argv) ->
 
           when 'create', 'fork'
             page.story or []
+           
+            
 
           else
             log "Unfamiliar action:", action
@@ -412,12 +416,18 @@ module.exports = exports = (argv) ->
 
       # Add a blank journal if it does not exist.
       # And add what happened to the journal.
+      ownerEmail = getOwner()
       if not page.journal
         page.journal = []
+        page.steward = ownerEmail
       if action.fork
         page.journal.push({type: "fork", site: action.fork})
+        page.steward = ownerEmail
+        log 'happening2'
         delete action.fork
-      page.journal.push(action)
+      if not page.journal || action.fork
+        page.steward = ownerEmail
+        log 'happening'
       pagehandler.put req.params[0], page, (e) ->
         if e then return res.e e
         res.send('ok')
@@ -439,6 +449,7 @@ module.exports = exports = (argv) ->
           actionCB(null, itemCopy)
 
     else if action.type == 'fork'
+      
       if action.item # push
         itemCopy = JSON.parse(JSON.stringify(action.item))
         delete action.item

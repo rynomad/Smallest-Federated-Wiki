@@ -474,7 +474,34 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./active.coffee":10,"./refresh.coffee":11}],5:[function(require,module,exports){
+},{"./wiki.coffee":2,"./pageHandler.coffee":6,"./plugin.coffee":7,"./util.coffee":8,"./state.coffee":9,"./active.coffee":10,"./refresh.coffee":11}],4:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -578,277 +605,7 @@ active.set = function(el) {
 };
 
 
-},{}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
-
-
-},{}],9:[function(require,module,exports){
-var active, state, wiki,
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-module.exports = state = {};
-
-state.pagesInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return el.id;
-  }));
-};
-
-state.urlPages = function() {
-  var i;
-  return ((function() {
-    var _i, _len, _ref, _results;
-    _ref = $(location).attr('pathname').split('/');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-      i = _ref[_i];
-      _results.push(i);
-    }
-    return _results;
-  })()).slice(1);
-};
-
-state.locsInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return $(el).data('site') || 'view';
-  }));
-};
-
-state.urlLocs = function() {
-  var j, _i, _len, _ref, _results;
-  _ref = $(location).attr('pathname').split('/').slice(1);
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-    j = _ref[_i];
-    _results.push(j);
-  }
-  return _results;
-};
-
-state.setUrl = function() {
-  var idx, locs, page, pages, url, _ref;
-  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-  if (history && history.pushState) {
-    locs = state.locsInDom();
-    pages = state.pagesInDom();
-    url = ((function() {
-      var _i, _len, _results;
-      _results = [];
-      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
-        page = pages[idx];
-        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
-      }
-      return _results;
-    })()).join('');
-    if (url !== $(location).attr('pathname')) {
-      return history.pushState(null, null, url);
-    }
-  }
-};
-
-state.show = function(e) {
-  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
-  oldPages = state.pagesInDom();
-  newPages = state.urlPages();
-  oldLocs = state.locsInDom();
-  newLocs = state.urlLocs();
-  if (!location.pathname || location.pathname === '/') {
-    return;
-  }
-  previous = $('.page').eq(0);
-  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
-    name = newPages[idx];
-    if (name !== oldPages[idx]) {
-      old = $('.page').eq(idx);
-      if (old) {
-        old.remove();
-      }
-      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
-    }
-    previous = $('.page').eq(idx);
-  }
-  previous.nextAll().remove();
-  active.set($('.page').last());
-  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-};
-
-state.first = function() {
-  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
-  state.setUrl();
-  firstUrlPages = state.urlPages();
-  firstUrlLocs = state.urlLocs();
-  oldPages = state.pagesInDom();
-  _results = [];
-  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
-    urlPage = firstUrlPages[idx];
-    if (__indexOf.call(oldPages, urlPage) < 0) {
-      if (urlPage !== '') {
-        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
-      } else {
-        _results.push(void 0);
-      }
-    }
-  }
-  return _results;
-};
-
-
-},{"./wiki.coffee":2,"./active.coffee":10}],6:[function(require,module,exports){
-var util, wiki;
-
-wiki = require('./wiki.coffee');
-
-module.exports = wiki.util = util = {};
-
-util.symbols = {
-  create: '☼',
-  add: '+',
-  edit: '✎',
-  fork: '⚑',
-  move: '↕',
-  remove: '✕'
-};
-
-util.randomByte = function() {
-  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
-};
-
-util.randomBytes = function(n) {
-  return ((function() {
-    var _i, _results;
-    _results = [];
-    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
-      _results.push(util.randomByte());
-    }
-    return _results;
-  })()).join('');
-};
-
-util.formatTime = function(time) {
-  var am, d, h, mi, mo;
-  d = new Date((time > 10000000000 ? time : time * 1000));
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
-};
-
-util.formatDate = function(msSinceEpoch) {
-  var am, d, day, h, mi, mo, sec, wk, yr;
-  d = new Date(msSinceEpoch);
-  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  day = d.getDate();
-  yr = d.getFullYear();
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
-  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
-};
-
-util.formatElapsedTime = function(msSinceEpoch) {
-  var days, hrs, mins, months, msecs, secs, weeks, years;
-  msecs = new Date().getTime() - msSinceEpoch;
-  if ((secs = msecs / 1000) < 2) {
-    return "" + (Math.floor(msecs)) + " milliseconds ago";
-  }
-  if ((mins = secs / 60) < 2) {
-    return "" + (Math.floor(secs)) + " seconds ago";
-  }
-  if ((hrs = mins / 60) < 2) {
-    return "" + (Math.floor(mins)) + " minutes ago";
-  }
-  if ((days = hrs / 24) < 2) {
-    return "" + (Math.floor(hrs)) + " hours ago";
-  }
-  if ((weeks = days / 7) < 2) {
-    return "" + (Math.floor(days)) + " days ago";
-  }
-  if ((months = days / 31) < 2) {
-    return "" + (Math.floor(weeks)) + " weeks ago";
-  }
-  if ((years = days / 365) < 2) {
-    return "" + (Math.floor(months)) + " months ago";
-  }
-  return "" + (Math.floor(years)) + " years ago";
-};
-
-util.emptyPage = function() {
-  return {
-    title: 'empty',
-    story: [],
-    journal: []
-  };
-};
-
-util.getSelectionPos = function(jQueryElement) {
-  var el, iePos, sel;
-  el = jQueryElement.get(0);
-  if (document.selection) {
-    el.focus();
-    sel = document.selection.createRange();
-    sel.moveStart('character', -el.value.length);
-    iePos = sel.text.length;
-    return {
-      start: iePos,
-      end: iePos
-    };
-  } else {
-    return {
-      start: el.selectionStart,
-      end: el.selectionEnd
-    };
-  }
-};
-
-util.setCaretPosition = function(jQueryElement, caretPos) {
-  var el, range;
-  el = jQueryElement.get(0);
-  if (el != null) {
-    if (el.createTextRange) {
-      range = el.createTextRange();
-      range.move("character", caretPos);
-      range.select();
-    } else {
-      el.setSelectionRange(caretPos, caretPos);
-    }
-    return el.focus();
-  }
-};
-
-
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -990,7 +747,250 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./util.coffee":8,"./wiki.coffee":2}],8:[function(require,module,exports){
+var util, wiki;
+
+wiki = require('./wiki.coffee');
+
+module.exports = wiki.util = util = {};
+
+util.symbols = {
+  create: '☼',
+  add: '+',
+  edit: '✎',
+  fork: '⚑',
+  move: '↕',
+  remove: '✕'
+};
+
+util.randomByte = function() {
+  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
+};
+
+util.randomBytes = function(n) {
+  return ((function() {
+    var _i, _results;
+    _results = [];
+    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
+      _results.push(util.randomByte());
+    }
+    return _results;
+  })()).join('');
+};
+
+util.formatTime = function(time) {
+  var am, d, h, mi, mo;
+  d = new Date((time > 10000000000 ? time : time * 1000));
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
+};
+
+util.formatDate = function(msSinceEpoch) {
+  var am, d, day, h, mi, mo, sec, wk, yr;
+  d = new Date(msSinceEpoch);
+  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  day = d.getDate();
+  yr = d.getFullYear();
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
+};
+
+util.formatElapsedTime = function(msSinceEpoch) {
+  var days, hrs, mins, months, msecs, secs, weeks, years;
+  msecs = new Date().getTime() - msSinceEpoch;
+  if ((secs = msecs / 1000) < 2) {
+    return "" + (Math.floor(msecs)) + " milliseconds ago";
+  }
+  if ((mins = secs / 60) < 2) {
+    return "" + (Math.floor(secs)) + " seconds ago";
+  }
+  if ((hrs = mins / 60) < 2) {
+    return "" + (Math.floor(mins)) + " minutes ago";
+  }
+  if ((days = hrs / 24) < 2) {
+    return "" + (Math.floor(hrs)) + " hours ago";
+  }
+  if ((weeks = days / 7) < 2) {
+    return "" + (Math.floor(days)) + " days ago";
+  }
+  if ((months = days / 31) < 2) {
+    return "" + (Math.floor(weeks)) + " weeks ago";
+  }
+  if ((years = days / 365) < 2) {
+    return "" + (Math.floor(months)) + " months ago";
+  }
+  return "" + (Math.floor(years)) + " years ago";
+};
+
+util.emptyPage = function() {
+  return {
+    title: 'empty',
+    story: [],
+    journal: []
+  };
+};
+
+util.getSelectionPos = function(jQueryElement) {
+  var el, iePos, sel;
+  el = jQueryElement.get(0);
+  if (document.selection) {
+    el.focus();
+    sel = document.selection.createRange();
+    sel.moveStart('character', -el.value.length);
+    iePos = sel.text.length;
+    return {
+      start: iePos,
+      end: iePos
+    };
+  } else {
+    return {
+      start: el.selectionStart,
+      end: el.selectionEnd
+    };
+  }
+};
+
+util.setCaretPosition = function(jQueryElement, caretPos) {
+  var el, range;
+  el = jQueryElement.get(0);
+  if (el != null) {
+    if (el.createTextRange) {
+      range = el.createTextRange();
+      range.move("character", caretPos);
+      range.select();
+    } else {
+      el.setSelectionRange(caretPos, caretPos);
+    }
+    return el.focus();
+  }
+};
+
+
+},{"./wiki.coffee":2}],9:[function(require,module,exports){
+var active, state, wiki,
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+module.exports = state = {};
+
+state.pagesInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return el.id;
+  }));
+};
+
+state.urlPages = function() {
+  var i;
+  return ((function() {
+    var _i, _len, _ref, _results;
+    _ref = $(location).attr('pathname').split('/');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+      i = _ref[_i];
+      _results.push(i);
+    }
+    return _results;
+  })()).slice(1);
+};
+
+state.locsInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return $(el).data('site') || 'view';
+  }));
+};
+
+state.urlLocs = function() {
+  var j, _i, _len, _ref, _results;
+  _ref = $(location).attr('pathname').split('/').slice(1);
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+    j = _ref[_i];
+    _results.push(j);
+  }
+  return _results;
+};
+
+state.setUrl = function() {
+  var idx, locs, page, pages, url, _ref;
+  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+  if (history && history.pushState) {
+    locs = state.locsInDom();
+    pages = state.pagesInDom();
+    url = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
+        page = pages[idx];
+        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
+      }
+      return _results;
+    })()).join('');
+    if (url !== $(location).attr('pathname')) {
+      return history.pushState(null, null, url);
+    }
+  }
+};
+
+state.show = function(e) {
+  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
+  oldPages = state.pagesInDom();
+  newPages = state.urlPages();
+  oldLocs = state.locsInDom();
+  newLocs = state.urlLocs();
+  if (!location.pathname || location.pathname === '/') {
+    return;
+  }
+  previous = $('.page').eq(0);
+  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
+    name = newPages[idx];
+    if (name !== oldPages[idx]) {
+      old = $('.page').eq(idx);
+      if (old) {
+        old.remove();
+      }
+      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
+    }
+    previous = $('.page').eq(idx);
+  }
+  previous.nextAll().remove();
+  active.set($('.page').last());
+  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+};
+
+state.first = function() {
+  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
+  state.setUrl();
+  firstUrlPages = state.urlPages();
+  firstUrlLocs = state.urlLocs();
+  oldPages = state.pagesInDom();
+  _results = [];
+  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
+    urlPage = firstUrlPages[idx];
+    if (__indexOf.call(oldPages, urlPage) < 0) {
+      if (urlPage !== '') {
+        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
+      } else {
+        _results.push(void 0);
+      }
+    }
+  }
+  return _results;
+};
+
+
+},{"./wiki.coffee":2,"./active.coffee":10}],6:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1215,7 +1215,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./wiki.coffee":2,"./util.coffee":6,"./state.coffee":9,"./revision.coffee":12,"./addToJournal.coffee":13,"underscore":14}],11:[function(require,module,exports){
+},{"./wiki.coffee":2,"./util.coffee":8,"./state.coffee":9,"./revision.coffee":12,"./addToJournal.coffee":13,"underscore":14}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1581,7 +1581,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./neighborhood.coffee":15,"./addToJournal.coffee":13,"./wiki.coffee":2,"underscore":14}],14:[function(require,module,exports){
+},{"./util.coffee":8,"./pageHandler.coffee":6,"./plugin.coffee":7,"./state.coffee":9,"./neighborhood.coffee":15,"./addToJournal.coffee":13,"./wiki.coffee":2,"underscore":14}],14:[function(require,module,exports){
 (function(){//     Underscore.js 1.4.4
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -2904,7 +2904,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":6}],15:[function(require,module,exports){
+},{"./util.coffee":8}],15:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3055,7 +3055,7 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./active.coffee":10,"./util.coffee":6,"./search.coffee":16,"underscore":14}],16:[function(require,module,exports){
+},{"./active.coffee":10,"./wiki.coffee":2,"./search.coffee":16,"./util.coffee":8,"underscore":14}],16:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3110,5 +3110,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./wiki.coffee":2,"./util.coffee":6,"./active.coffee":10}]},{},[1])
+},{"./wiki.coffee":2,"./util.coffee":8,"./active.coffee":10}]},{},[1])
 ;

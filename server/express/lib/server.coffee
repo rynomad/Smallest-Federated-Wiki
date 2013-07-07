@@ -378,6 +378,8 @@ module.exports = exports = (argv) ->
       # result of a list comprehension by way of a switch expression.
       if owner?
         page.steward = owner
+      else
+        page.steward = 'anonymous'
       try
         page.story = switch action.type
           when 'move'
@@ -406,8 +408,6 @@ module.exports = exports = (argv) ->
           when 'create', 'fork'
             page.story or []
            
-            
-
           else
             log "Unfamiliar action:", action
             page.story
@@ -419,15 +419,9 @@ module.exports = exports = (argv) ->
       ownerEmail = getOwner()
       if not page.journal
         page.journal = []
-        page.steward = ownerEmail
       if action.fork
-        page.journal.push({type: "fork", site: action.fork})
-        page.steward = ownerEmail
-        log 'happening2'
+        page.journal.push({type: "fork", site: action.fork}) 
         delete action.fork
-      if not page.journal || action.fork
-        page.steward = ownerEmail
-        log 'happening'
       pagehandler.put req.params[0], page, (e) ->
         if e then return res.e e
         res.send('ok')

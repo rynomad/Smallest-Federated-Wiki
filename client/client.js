@@ -14,6 +14,8 @@ wiki = {
   createSynopsis: createSynopsis
 };
 
+wiki.persona = require('./persona.coffee');
+
 wiki.log = function() {
   var things;
   things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
@@ -104,7 +106,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./synopsis.coffee":4,"./persona.coffee":5}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -472,7 +474,7 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./pageHandler.coffee":6,"./plugin.coffee":7,"./state.coffee":8,"./active.coffee":9,"./refresh.coffee":10}],4:[function(require,module,exports){
+},{"./wiki.coffee":2,"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./active.coffee":10,"./refresh.coffee":11}],4:[function(require,module,exports){
 module.exports = function(page) {
   var p1, p2, synopsis;
   synopsis = page.synopsis;
@@ -499,7 +501,57 @@ module.exports = function(page) {
 };
 
 
-},{}],9:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onmatch: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
+    }
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
+};
+
+
+},{}],10:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -553,7 +605,7 @@ active.set = function(el) {
 };
 
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -681,7 +733,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./wiki.coffee":2}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -835,7 +887,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":5,"./wiki.coffee":2}],8:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -950,7 +1002,7 @@ state.first = function() {
 };
 
 
-},{"./wiki.coffee":2,"./active.coffee":9}],6:[function(require,module,exports){
+},{"./wiki.coffee":2,"./active.coffee":10}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1175,7 +1227,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./state.coffee":8,"./revision.coffee":11,"./addToJournal.coffee":12,"underscore":13}],10:[function(require,module,exports){
+},{"./wiki.coffee":2,"./util.coffee":6,"./state.coffee":9,"./revision.coffee":12,"./addToJournal.coffee":13,"underscore":14}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1405,6 +1457,7 @@ renderPageIntoPageElement = function(pageData, $page, siteFound) {
       return;
     }
     item = page.story[i];
+    item.steward = page.steward;
     if ((item != null ? item.type : void 0) && (item != null ? item.id : void 0)) {
       $item = $("<div class=\"item " + item.type + "\" data-id=\"" + item.id + "\">");
       $story.append($item);
@@ -1541,7 +1594,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./util.coffee":5,"./pageHandler.coffee":6,"./plugin.coffee":7,"./state.coffee":8,"./neighborhood.coffee":14,"./addToJournal.coffee":12,"./wiki.coffee":2,"underscore":13}],13:[function(require,module,exports){
+},{"./util.coffee":6,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./neighborhood.coffee":15,"./addToJournal.coffee":13,"./wiki.coffee":2,"underscore":14}],14:[function(require,module,exports){
 (function(){//     Underscore.js 1.4.4
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -2770,7 +2823,7 @@ module.exports = refresh = wiki.refresh = function() {
 }).call(this);
 
 })()
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var create;
 
 create = function(revIndex, data) {
@@ -2836,7 +2889,7 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var util;
 
 util = require('./util.coffee');
@@ -2864,7 +2917,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":5}],14:[function(require,module,exports){
+},{"./util.coffee":6}],15:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3015,7 +3068,7 @@ $(function() {
 });
 
 
-},{"./wiki.coffee":2,"./active.coffee":9,"./util.coffee":5,"./search.coffee":15,"underscore":13}],15:[function(require,module,exports){
+},{"./wiki.coffee":2,"./util.coffee":6,"./active.coffee":10,"./search.coffee":16,"underscore":14}],16:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3070,5 +3123,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./wiki.coffee":2,"./util.coffee":5,"./active.coffee":9}]},{},[1])
+},{"./wiki.coffee":2,"./active.coffee":10,"./util.coffee":6}]},{},[1])
 ;

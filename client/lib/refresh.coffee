@@ -166,6 +166,7 @@ renderPageIntoPageElement = (pageData,$page, siteFound) ->
   emitItem = (i) ->
     return if i >= page.story.length
     item = page.story[i]
+    item.steward = page.steward
     if item?.type and item?.id
       $item = $ """<div class="item #{item.type}" data-id="#{item.id}">"""
       $story.append $item

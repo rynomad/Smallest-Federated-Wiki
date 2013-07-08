@@ -26,6 +26,7 @@ es = require 'event-stream'
 JSONStream = require 'JSONStream'
 async = require 'async'
 f = require('flates')
+querystring = require 'querystring'
 
 
 # Local files
@@ -101,6 +102,7 @@ module.exports = exports = (argv) ->
   # has been claimed with.  It is persisted at argv.status/open_id.identity,
   # and kept in memory as owner.  A falsy owner implies an unclaimed wiki.
   owner = ''
+  ownerId = ''
 
   # Attempt to figure out if the wiki is claimed or not,
   # if it is return the owner, if not set the owner
@@ -120,6 +122,8 @@ module.exports = exports = (argv) ->
           cb())
       else
         cb()
+        
+   
 
   #### Middleware ####
   #
@@ -376,10 +380,7 @@ module.exports = exports = (argv) ->
         res.send(page, status)
       # Using Coffee-Scripts implicit returns we assign page.story to the
       # result of a list comprehension by way of a switch expression.
-      if owner?
-        page.steward = owner
-      else
-        page.steward = 'anonymous'
+      page.steward = ownerId
       try
         page.story = switch action.type
           when 'move'
@@ -475,7 +476,35 @@ module.exports = exports = (argv) ->
     # Should replace most WebSocketServers below.
     plugins = pluginsFactory(argv)
     plugins.startServers({server: server, argv})
+    ### Get OwnerId ###
+    console.log "owner: ", owner
+    post_data = querystring.stringify({
+      'email' : "#{owner}"
+    })
+    
+    post_options = {
+      host: 'beta.openbadges.org',
+      port: 80,
+      path: '/displayer/convert/email',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': post_data.length
+      }
+    }
 
+    post_req = http.request(post_options, (res) ->
+      res.setEncoding('utf8')
+      res.on('data', (chunk) ->
+        ownerId = JSON.parse(chunk).userId
+        console.log chunk
+        console.log ownerId
+      ) 
+    )
+    
+
+    post_req.write(post_data)
+    post_req.end()
   # Return app when called, so that it can be watched for events and shutdown with .close() externally.
   app
 

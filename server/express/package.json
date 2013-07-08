@@ -22,7 +22,8 @@
     "config-chain": "*",
     "glob": "*",
     "flates": "0.0.5",
-    "qs": "0.6.5"
+    "qs": "0.6.5",
+    "querystring":"*"
   },
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha",

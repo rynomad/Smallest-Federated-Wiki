@@ -1,6 +1,6 @@
 {
   "name": "sfwiki",
-  "version": "0.0.1a",
+  "version": "0.0.1",
   "main": "index.js",
   "private": true,
   "bin": {

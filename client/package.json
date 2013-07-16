@@ -1,13 +1,14 @@
 {
   "name": "sfw",
-  "version": "0.0.1a",
+  "version": "0.0.1",
   "main": "client.coffee",
   "private": true,
   "dependencies": {
     "coffee-script": "*",
     "browserify": ">=2.13.2",
     "underscore": "*",
-    "coffeeify": "*"
+    "coffeeify": "*",
+    "idb-wrapper": "*"
   },
   "scripts": {
     "test": "browserify -t coffeeify testclient.coffee ./plugins/*/test.coffee --debug > test/testclient.js",

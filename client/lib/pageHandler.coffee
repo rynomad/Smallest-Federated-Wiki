@@ -1,10 +1,12 @@
 _ = require 'underscore'
+IDBStore = require 'idb-wrapper'
 
 wiki = require './wiki.coffee'
 util = require './util.coffee'
 state = require './state.coffee'
 revision = require './revision.coffee'
 addToJournal = require './addToJournal.coffee'
+repository = require './repository.coffee'
 
 module.exports = pageHandler = {}
 
@@ -16,6 +18,7 @@ pageFromLocalStorage = (slug)->
 
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   {slug,rev,site} = pageInformation
+
 
   if site
     localContext = []
@@ -89,7 +92,7 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
     delete action['fork']
   page.journal = page.journal.concat(action)
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
-  localStorage[pagePutInfo.slug] = JSON.stringify(page)
+  repository.update(page)
   addToJournal pageElement.find('.journal'), action
 
 pushToServer = (pageElement, pagePutInfo, action) ->
@@ -105,6 +108,8 @@ pushToServer = (pageElement, pagePutInfo, action) ->
         state.setUrl
     error: (xhr, type, msg) ->
       wiki.log "pageHandler.put ajax error callback", type, msg
+  console.log pageElement, pagePutInfo, action
+  
 
 pageHandler.put = (pageElement, action) ->
 
@@ -162,4 +167,4 @@ pageHandler.put = (pageElement, action) ->
     pageElement.addClass("local")
   else
     pushToServer(pageElement, pagePutInfo, action)
-
+    pushToLocal(pageElement, pagePutInfo, action)

@@ -27,6 +27,9 @@ JSONStream = require 'JSONStream'
 async = require 'async'
 f = require('flates')
 
+#psuedo npm
+require 'wsproxy'
+
 # Local files
 random = require './random_id'
 defargs = require './defaultargs'

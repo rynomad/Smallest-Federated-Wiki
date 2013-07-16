@@ -4,109 +4,7 @@ window.wiki = require('./lib/wiki.coffee');
 require('./lib/legacy.coffee');
 
 
-},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],2:[function(require,module,exports){
-var createSynopsis, wiki,
-  __slice = [].slice;
-
-createSynopsis = require('./synopsis.coffee');
-
-wiki = {
-  createSynopsis: createSynopsis
-};
-
-wiki.persona = require('./persona.coffee');
-
-wiki.log = function() {
-  var things;
-  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
-    return console.log.apply(console, things);
-  }
-};
-
-wiki.asSlug = function(name) {
-  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
-};
-
-wiki.useLocalStorage = function() {
-  return $(".login").length > 0;
-};
-
-wiki.resolutionContext = [];
-
-wiki.resolveFrom = function(addition, callback) {
-  wiki.resolutionContext.push(addition);
-  try {
-    return callback();
-  } finally {
-    wiki.resolutionContext.pop();
-  }
-};
-
-wiki.getData = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  } else {
-    who = $('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  }
-};
-
-wiki.getDataNodes = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  } else {
-    who = $('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  }
-};
-
-wiki.createPage = function(name, loc) {
-  var $page, site;
-  if (loc && loc !== 'view') {
-    site = loc;
-  }
-  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
-  if (site) {
-    $page.find('.page').attr('data-site', site);
-  }
-  return $page;
-};
-
-wiki.getItem = function(element) {
-  if ($(element).length > 0) {
-    return $(element).data("item") || $(element).data('staticItem');
-  }
-};
-
-wiki.resolveLinks = function(string) {
-  var renderInternalLink;
-  renderInternalLink = function(match, name) {
-    var slug;
-    slug = wiki.asSlug(name);
-    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
-  };
-  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
-};
-
-module.exports = wiki;
-
-
-},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -474,84 +372,109 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
+},{"./active.coffee":8,"./pageHandler.coffee":5,"./plugin.coffee":6,"./refresh.coffee":9,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2}],2:[function(require,module,exports){
+var createSynopsis, wiki,
+  __slice = [].slice;
+
+createSynopsis = require('./synopsis.coffee');
+
+wiki = {
+  createSynopsis: createSynopsis
+};
+
+wiki.persona = require('./persona.coffee');
+
+wiki.log = function() {
+  var things;
+  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
+    return console.log.apply(console, things);
   }
-  return synopsis;
 };
 
+wiki.asSlug = function(name) {
+  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
+};
 
-},{}],5:[function(require,module,exports){
-module.exports = function(owner) {
-  $("#user-email").hide();
-  $("#persona-login-btn").hide();
-  $("#persona-logout-btn").hide();
-  navigator.id.watch({
-    loggedInUser: owner,
-    onlogin: function(assertion) {
-      return $.post("/persona_login", {
-        assertion: assertion
-      }, function(verified) {
-        verified = JSON.parse(verified);
-        if ("okay" === verified.status) {
-          return window.location = "/";
-        } else {
-          navigator.id.logout();
-          if ("wrong-address" === verified.status) {
-            return window.location = "/oops";
-          }
-        }
-      });
-    },
-    onlogout: function() {
-      return $.post("/persona_logout", function() {
-        return window.location = "/";
-      });
-    },
-    onready: function() {
-      if (owner) {
-        $("#user-email").text(owner).show();
-        $("#persona-login-btn").hide();
-        return $("#persona-logout-btn").show();
-      } else {
-        $("#user-email").hide();
-        $("#persona-login-btn").show();
-        return $("#persona-logout-btn").hide();
-      }
+wiki.useLocalStorage = function() {
+  return $(".login").length > 0;
+};
+
+wiki.resolutionContext = [];
+
+wiki.resolveFrom = function(addition, callback) {
+  wiki.resolutionContext.push(addition);
+  try {
+    return callback();
+  } finally {
+    wiki.resolutionContext.pop();
+  }
+};
+
+wiki.getData = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
     }
-  });
-  $("#persona-login-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.request({});
-  });
-  return $("#persona-logout-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.logout();
-  });
+  } else {
+    who = $('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  }
 };
 
+wiki.getDataNodes = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  } else {
+    who = $('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  }
+};
 
-},{}],10:[function(require,module,exports){
+wiki.createPage = function(name, loc) {
+  var $page, site;
+  if (loc && loc !== 'view') {
+    site = loc;
+  }
+  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
+  if (site) {
+    $page.find('.page').attr('data-site', site);
+  }
+  return $page;
+};
+
+wiki.getItem = function(element) {
+  if ($(element).length > 0) {
+    return $(element).data("item") || $(element).data('staticItem');
+  }
+};
+
+wiki.resolveLinks = function(string) {
+  var renderInternalLink;
+  renderInternalLink = function(match, name) {
+    var slug;
+    slug = wiki.asSlug(name);
+    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
+  };
+  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
+};
+
+module.exports = wiki;
+
+
+},{"./persona.coffee":11,"./synopsis.coffee":10}],8:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -605,7 +528,84 @@ active.set = function(el) {
 };
 
 
-},{}],6:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],11:[function(require,module,exports){
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onready: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
+    }
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
+};
+
+
+},{}],4:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -733,7 +733,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{"./wiki.coffee":2}],6:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -887,7 +887,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
+},{"./util.coffee":4,"./wiki.coffee":2}],7:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1002,7 +1002,7 @@ state.first = function() {
 };
 
 
-},{"./active.coffee":10,"./wiki.coffee":2}],11:[function(require,module,exports){
+},{"./active.coffee":8,"./wiki.coffee":2}],9:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1368,8 +1368,8 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":13,"./neighborhood.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":14}],7:[function(require,module,exports){
-var IDBStore, addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
+},{"./addToJournal.coffee":13,"./neighborhood.coffee":12,"./pageHandler.coffee":5,"./plugin.coffee":6,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2,"underscore":14}],5:[function(require,module,exports){
+var IDBStore, addToJournal, pageFromLocalStorage, pageHandler, pushToRepo, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
 
 _ = require('underscore');
 
@@ -1491,7 +1491,7 @@ pageHandler.get = function(_arg) {
 
 pageHandler.context = [];
 
-pushToLocal = function(pageElement, pagePutInfo, action) {
+pushToRepo = function(pageElement, pagePutInfo, action) {
   var page, site;
   page = pageFromLocalStorage(pagePutInfo.slug);
   if (action.type === 'create') {
@@ -1590,16 +1590,16 @@ pageHandler.put = function(pageElement, action) {
     }
   }
   if (wiki.useLocalStorage() || pagePutInfo.site === 'local') {
-    pushToLocal(pageElement, pagePutInfo, action);
+    pushToRepo(pageElement, pagePutInfo, action);
     return pageElement.addClass("local");
   } else {
     pushToServer(pageElement, pagePutInfo, action);
-    return pushToLocal(pageElement, pagePutInfo, action);
+    return pushToRepo(pageElement, pagePutInfo, action);
   }
 };
 
 
-},{"./addToJournal.coffee":13,"./repository.coffee":16,"./revision.coffee":15,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"idb-wrapper":17,"underscore":14}],14:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./repository.coffee":16,"./revision.coffee":15,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2,"idb-wrapper":17,"underscore":14}],14:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3932,7 +3932,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":6}],12:[function(require,module,exports){
+},{"./util.coffee":4}],12:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -4083,7 +4083,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":14}],16:[function(require,module,exports){
+},{"./active.coffee":8,"./search.coffee":18,"./util.coffee":4,"./wiki.coffee":2,"underscore":14}],16:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var IDBStore, component, hostComponents, hostPrefix, jsonToContentObject, repo, repository, repositoryOpts, store, _i, _len;
@@ -4130,6 +4130,7 @@ repositoryOpts = {
     }
   ],
   onStoreReady: function() {
+    repo.ready = true;
     return $.get('/system/sitemap.json', function(sitemap) {
       var entry, _j, _len1, _results;
       _results = [];
@@ -4178,6 +4179,39 @@ repo.update = function(json) {
       }
     }
   });
+};
+
+repo.page = {};
+
+repo.getPage = function(slug) {
+  var done, found, onCheckEnd, onItem, page;
+  console.log("repo.ready ==", repo.ready);
+  done = false;
+  if (repo.ready === false) {
+    return void 0;
+  } else {
+    found = false;
+    page = void 0;
+    onItem = function(content, cursor, transaction) {
+      if (content.uri === hostPrefix + slug) {
+        console.log(content);
+        found = true;
+        return repo.page = content.object.content;
+      }
+    };
+    onCheckEnd = function() {
+      done = true;
+      if (found === false) {
+        return console.log("page not found in Repository");
+      } else {
+        return console.log("page found in Repository");
+      }
+    };
+    return repository.query(onItem, {
+      index: 'uri',
+      onEnd: onCheckEnd
+    });
+  }
 };
 
 /*
@@ -4294,5 +4328,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":8,"./util.coffee":4,"./wiki.coffee":2}]},{},[1])
 ;

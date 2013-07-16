@@ -11,6 +11,7 @@ repository = require './repository.coffee'
 module.exports = pageHandler = {}
 
 pageFromLocalStorage = (slug)->
+  
   if json = localStorage[slug]
     JSON.parse(json)
   else
@@ -82,7 +83,7 @@ pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 
 pageHandler.context = []
 
-pushToLocal = (pageElement, pagePutInfo, action) ->
+pushToRepo = (pageElement, pagePutInfo, action) ->
   page = pageFromLocalStorage pagePutInfo.slug
   page = {title: action.item.title} if action.type == 'create'
   page ||= pageElement.data("data")
@@ -163,8 +164,8 @@ pageHandler.put = (pageElement, action) ->
 
   # store as appropriate
   if wiki.useLocalStorage() or pagePutInfo.site == 'local'
-    pushToLocal(pageElement, pagePutInfo, action)
+    pushToRepo(pageElement, pagePutInfo, action)
     pageElement.addClass("local")
   else
     pushToServer(pageElement, pagePutInfo, action)
-    pushToLocal(pageElement, pagePutInfo, action)
+    pushToRepo(pageElement, pagePutInfo, action)

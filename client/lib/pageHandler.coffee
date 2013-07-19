@@ -5,6 +5,7 @@ util = require './util.coffee'
 state = require './state.coffee'
 revision = require './revision.coffee'
 addToJournal = require './addToJournal.coffee'
+repository = require './repository.coffee'
 
 module.exports = pageHandler = {}
 

@@ -1,6 +1,6 @@
 {
   "name": "sfw",
-  "version": "0.0.1a",
+  "version": "0.0.1",
   "main": "client.coffee",
   "private": true,
   "dependencies": {

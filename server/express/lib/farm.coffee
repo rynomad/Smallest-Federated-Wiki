@@ -45,6 +45,7 @@ module.exports = exports = (argv) ->
       for key, value of argv
         newargv[key] = value
       newargv.p = hosts[incHost]
+      console.log newargv
       newargv.d = if argv.d
         path.join(argv.d, incHost)
       else

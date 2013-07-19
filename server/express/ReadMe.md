@@ -23,7 +23,7 @@ To run in the default development mode at localhost:3000 just execute:
 
 To run in production mode:
 
-	NODE_ENV=production ./bin/server.js -p 80 -u 'http://example.com'
+	NODE_ENV=production ./bin/server.js -p 80 -u 'http://localhost'
 
 Debug logging is turned on when in the development environment. Add any options
 you want to the call.  A typical usage would be:

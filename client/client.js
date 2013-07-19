@@ -372,7 +372,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":8,"./pageHandler.coffee":4,"./plugin.coffee":7,"./refresh.coffee":9,"./state.coffee":6,"./util.coffee":5,"./wiki.coffee":2}],2:[function(require,module,exports){
+},{"./active.coffee":8,"./pageHandler.coffee":5,"./plugin.coffee":6,"./refresh.coffee":9,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2}],2:[function(require,module,exports){
 var createSynopsis, wiki,
   __slice = [].slice;
 
@@ -528,33 +528,6 @@ active.set = function(el) {
 };
 
 
-},{}],10:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
-
-
 },{}],11:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
@@ -605,7 +578,34 @@ module.exports = function(owner) {
 };
 
 
-},{}],5:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],4:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -733,7 +733,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],6:[function(require,module,exports){
+},{"./wiki.coffee":2}],7:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -848,7 +848,7 @@ state.first = function() {
 };
 
 
-},{"./active.coffee":8,"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./active.coffee":8,"./wiki.coffee":2}],6:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -990,7 +990,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":5,"./wiki.coffee":2}],4:[function(require,module,exports){
+},{"./util.coffee":4,"./wiki.coffee":2}],5:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1019,7 +1019,7 @@ pageFromLocalStorage = function(slug) {
 };
 
 recursiveGet = function(_arg) {
-  var localContext, localPage, pageInformation, rev, site, slug, url, whenGotten, whenNotGotten;
+  var localContext, pageInformation, rev, site, slug, url, whenGotten, whenNotGotten;
   pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
   slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site;
   if (site) {
@@ -1032,11 +1032,8 @@ recursiveGet = function(_arg) {
   }
   if (site != null) {
     if (site === 'local') {
-      if (localPage = pageFromLocalStorage(pageInformation.slug)) {
-        return whenGotten(localPage, 'local');
-      } else {
-        return whenNotGotten();
-      }
+      console.log('checking local');
+      repository.check(pageInformation.slug, whenGotten, whenNotGotten);
     } else {
       if (site === 'origin') {
         url = "/" + slug + ".json";
@@ -1088,15 +1085,17 @@ recursiveGet = function(_arg) {
 };
 
 pageHandler.get = function(_arg) {
-  var localPage, pageInformation, whenGotten, whenNotGotten;
+  var pageInformation, whenGotten, whenNotGotten;
   whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, pageInformation = _arg.pageInformation;
   if (!pageInformation.site) {
-    if (localPage = pageFromLocalStorage(pageInformation.slug)) {
-      if (pageInformation.rev) {
-        localPage = revision.create(pageInformation.rev, localPage);
-      }
-      return whenGotten(localPage, 'local');
-    }
+    console.log('here');
+    repository.check(pageInformation.slug, whenGotten);
+    /*
+    if localPage = pageFromLocalStorage(pageInformation.slug)
+      localPage = revision.create pageInformation.rev, localPage if pageInformation.rev
+      return whenGotten( localPage, 'local' )
+    */
+
   }
   if (!pageHandler.context.length) {
     pageHandler.context = ['view'];
@@ -1217,7 +1216,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":13,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":6,"./util.coffee":5,"./wiki.coffee":2,"underscore":15}],9:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2,"underscore":15}],9:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1583,7 +1582,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":13,"./neighborhood.coffee":16,"./pageHandler.coffee":4,"./plugin.coffee":7,"./state.coffee":6,"./util.coffee":5,"./wiki.coffee":2,"underscore":15}],15:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./neighborhood.coffee":16,"./pageHandler.coffee":5,"./plugin.coffee":6,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":2,"underscore":15}],15:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2926,7 +2925,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":5}],14:[function(require,module,exports){
+},{"./util.coffee":4}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var ndn, repo, repository, repositoryOpts;
@@ -2958,7 +2957,6 @@ repositoryOpts = {
         entry = sitemap[_i];
         _results.push($.get("/" + entry.slug + ".json", function(json) {
           var content, onError, onSuccess;
-          console.log(json);
           content = ndn.pageToContentObject(json);
           onSuccess = function() {
             return console.log("new page from Server added to Repository");
@@ -2977,28 +2975,30 @@ repositoryOpts = {
 repository = new IDBStore(repositoryOpts);
 
 repo.check = function(slug, ifCallback, elseCallback) {
-  var found, onCheckEnd, onItem;
-  found = false;
-  onItem = function(content) {
-    if (content.uri === hostPrefix + 'page/' + slug + '.json/') {
-      console.log(content);
-      found = true;
-      return ifCallback(content.object.content, 'local');
-    }
-  };
-  onCheckEnd = function() {
-    var done;
-    done = true;
-    if (found === false) {
-      console.log("page not found in Repository");
-      return elseCallback();
-    } else {
-      return console.log("page found in Repository");
-    }
-  };
-  return repository.query(onItem, {
-    index: 'uri',
-    onEnd: onCheckEnd
+  return new IDBStore(repositoryOpts, function() {
+    var found, onCheckEnd, onItem;
+    found = false;
+    onItem = function(content) {
+      if (content.uri === ndn.hostPrefix + 'page/' + slug + '.json/') {
+        console.log(content);
+        found = true;
+        return ifCallback(content.object.content, 'local');
+      }
+    };
+    onCheckEnd = function() {
+      var done;
+      done = true;
+      if (found === false) {
+        console.log("page not found in Repository");
+        return elseCallback();
+      } else {
+        return console.log("page found in Repository");
+      }
+    };
+    return repository.iterate(onItem, {
+      index: 'uri',
+      onEnd: onCheckEnd
+    });
   });
 };
 
@@ -3270,25 +3270,25 @@ $(function() {
 });
 
 
-},{"./active.coffee":8,"./search.coffee":18,"./util.coffee":5,"./wiki.coffee":2,"underscore":15}],17:[function(require,module,exports){
-var component, hostComponents, hostPrefix, ndn, _i, _len;
+},{"./active.coffee":8,"./search.coffee":18,"./util.coffee":4,"./wiki.coffee":2,"underscore":15}],17:[function(require,module,exports){
+var component, hostComponents, ndn, _i, _len;
 
 module.exports = ndn = {};
 
-hostPrefix = '/';
+ndn.hostPrefix = '/';
 
 hostComponents = location.host.split(':')[0].split('.');
 
 for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
   component = hostComponents[_i];
   if (component !== 'www') {
-    hostPrefix = ("/" + component) + hostPrefix;
+    ndn.hostPrefix = ("/" + component) + ndn.hostPrefix;
   }
 }
 
 ndn.pageToContentObject = function(json) {
   var content, name, uri;
-  uri = hostPrefix + 'page/' + wiki.asSlug(json.title) + '.json/';
+  uri = ndn.hostPrefix + 'page/' + wiki.asSlug(json.title) + '.json/';
   name = new Name(uri);
   content = {};
   content.object = new ContentObject(name, new SignedInfo(), json, new Signature());
@@ -3352,5 +3352,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":8,"./util.coffee":5,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":8,"./util.coffee":4,"./wiki.coffee":2}]},{},[1])
 ;

@@ -20,7 +20,6 @@ repositoryOpts = {
     $.get('/system/sitemap.json', (sitemap) ->  
       for entry in sitemap
         $.get("/#{entry.slug}.json", (json) ->
-          console.log json
           content = ndn.pageToContentObject(json)
           onSuccess = () ->
             console.log "new page from Server added to Repository"
@@ -35,23 +34,25 @@ repository = new IDBStore(repositoryOpts)
 
 #Check to see if a page is in the repository, and perform the appropriate callback
 repo.check = (slug, ifCallback, elseCallback) ->
-  found = false
-  onItem = (content) ->
-    if content.uri == hostPrefix + 'page/' + slug + '.json/'
-      console.log content
-      found = true
-      ifCallback(content.object.content, 'local')
-  onCheckEnd = () ->
-    done = true
-    if found == false
-      console.log "page not found in Repository"
-      elseCallback()
-    else
-      console.log "page found in Repository"
-  repository.query(onItem, {
-    index: 'uri'
-    onEnd: onCheckEnd        
-  })
+  new IDBStore repositoryOpts, () ->
+    found = false
+    onItem = (content) ->
+      if content.uri == ndn.hostPrefix + 'page/' + slug + '.json/'
+        console.log content
+        found = true
+        ifCallback(content.object.content, 'local')
+    onCheckEnd = () ->
+      done = true
+      if found == false
+        console.log "page not found in Repository"
+        elseCallback()
+      else
+        console.log "page found in Repository"
+    repository.iterate(onItem, {
+      index: 'uri'
+      onEnd: onCheckEnd        
+    })
+    
 
 repo.update = (json) ->
   content = jsonToContentObject(json)

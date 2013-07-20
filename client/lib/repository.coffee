@@ -2,6 +2,7 @@
 # For Offline mode, we mirror all pages in the browsers IndexedDB using IDBWrapper (https://github.com/jensarps/IDBWrapper)
 
 ndn = require './ndn.coffee'
+revision = require './revision.coffee'
 module.exports = repo = {}
 
 repo.ready = false
@@ -33,14 +34,17 @@ repositoryOpts = {
 repository = new IDBStore(repositoryOpts)
 
 #Check to see if a page is in the repository, and perform the appropriate callback
-repo.check = (slug, ifCallback, elseCallback) ->
+repo.check = (pageInformation, ifCallback, elseCallback) ->
   new IDBStore repositoryOpts, () ->
     found = false
     onItem = (content) ->
-      if content.uri == ndn.hostPrefix + 'page/' + slug + '.json/'
+      if content.uri == ndn.hostPrefix + 'page/' + pageInformation.slug + '.json/'
         console.log content
         found = true
-        ifCallback(content.object.content, 'local')
+        page = content.object.content
+        console.log pageInformation
+        page = revision.create pageInformation.rev, page if pageInformation.rev
+        ifCallback(page, 'local')
     onCheckEnd = () ->
       done = true
       if found == false

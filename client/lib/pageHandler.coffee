@@ -28,7 +28,7 @@ recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   if site?
     if site == 'local'
       console.log 'checking local'
-      repository.check(pageInformation.slug, whenGotten, whenNotGotten)
+      repository.check(pageInformation, whenGotten, whenNotGotten)
     else
       if site == 'origin'
         url = "/#{slug}.json"
@@ -64,7 +64,9 @@ pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 
   unless pageInformation.site
     console.log 'here'
-    repository.check(pageInformation.slug, whenGotten)
+    console.log pageInformation
+      
+    repository.check(pageInformation, whenGotten)
     ###
     if localPage = pageFromLocalStorage(pageInformation.slug)
       localPage = revision.create pageInformation.rev, localPage if pageInformation.rev

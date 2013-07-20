@@ -255,7 +255,6 @@ module.exports = refresh = wiki.refresh = ->
     if hits.length > 0
       page.story.push heading, hits...
       page.story[0].text = 'We could not find this page in the expected context.'
-
     wiki.buildPage( page, undefined, $page ).addClass('ghost')
 
   registerNeighbors = (data, site) ->

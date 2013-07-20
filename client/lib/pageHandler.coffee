@@ -27,7 +27,6 @@ recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
 
   if site?
     if site == 'local'
-      console.log 'checking local'
       repository.check(pageInformation, whenGotten, whenNotGotten)
     else
       if site == 'origin'
@@ -62,23 +61,17 @@ recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
 
 pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 
-  unless pageInformation.site
-    console.log 'here'
-    console.log pageInformation
-      
-    repository.check(pageInformation, whenGotten)
-    ###
-    if localPage = pageFromLocalStorage(pageInformation.slug)
-      localPage = revision.create pageInformation.rev, localPage if pageInformation.rev
-      return whenGotten( localPage, 'local' )
-    ###
-  pageHandler.context = ['view'] unless pageHandler.context.length
-
-  recursiveGet
-    pageInformation: pageInformation
-    whenGotten: whenGotten
-    whenNotGotten: whenNotGotten
-    localContext: _.clone(pageHandler.context)
+  if pageInformation.site == undefined
+    repository.check(pageInformation, whenGotten, whenNotGotten)
+  
+  else
+    pageHandler.context = ['view'] unless pageHandler.context.length
+    
+    recursiveGet
+      pageInformation: pageInformation
+      whenGotten: whenGotten
+      whenNotGotten: whenNotGotten
+      localContext: _.clone(pageHandler.context)
 
 
 pageHandler.context = []
@@ -93,8 +86,9 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
     delete action['fork']
   page.journal = page.journal.concat(action)
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
-  localStorage[pagePutInfo.slug] = JSON.stringify(page)
   addToJournal pageElement.find('.journal'), action
+  repository.update(page)
+  
 
 pushToServer = (pageElement, pagePutInfo, action) ->
   $.ajax

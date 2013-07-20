@@ -59,23 +59,25 @@ repo.check = (pageInformation, ifCallback, elseCallback) ->
     
 
 repo.update = (json) ->
-  content = jsonToContentObject(json)
-  inserted = false
-  onmatch = (object, cursor, transaction) ->
-    if content.uri == object.uri
-      content.id = object.id
-      console.log content
-      cursor.update(content)
-      inserted = true
-      console.log "content updated"
-  repository.iterate(onmatch, {
-    index: 'uri'
-    writeAccess: true
-    onEnd: ()->
-      if inserted == false
-        console.log "content not inserted"
-        repository.put(content)
-  })
+  new IDBStore repositoryOpts, () ->
+    content = ndn.pageToContentObject(json)
+    inserted = false
+    onmatch = (object, cursor, transaction) ->
+      if content.uri == object.uri
+        content.id = object.id
+        console.log content
+        cursor.update(content)
+        inserted = true
+        console.log "content found and updated"
+    onEnding = ()->
+        if inserted == false
+          console.log "content not not found; inserted"
+          repository.put(content)
+    repository.iterate(onmatch, {
+      index: 'uri'
+      writeAccess: true
+      onEnd: onEnding
+    })
 
 repo.page = {}
 

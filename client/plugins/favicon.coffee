@@ -28,7 +28,7 @@ hsltorgb = (h, s, l) ->
 
 
 window.plugins.favicon =
-  create: ->
+  create: (db) ->
     $('body').append(
       $('<canvas />').attr('width', 32).attr('height', 32).attr('id', 'favmaker').attr('display', 'none').hide()
     )
@@ -48,10 +48,10 @@ window.plugins.favicon =
         p = p / 31 / scale
         ctx.fillStyle = "rgba(#{colprep(0, p)}, #{colprep(1, p)}, #{colprep(2, p)}, 1)"
         ctx.fillRect(x, y, 1, 1)
-    fav = canvas.toDataURL()
+    fav = {}
+    fav.dataUrl = canvas.toDataURL()
+    fav.type = 'favicon'
     $('#favicon').attr('href', fav)
     $('.favicon').attr('src', fav)
-    $.post('/favicon.png', {image: fav}, (data) ->
-      console.log data
-    )
+    db.put(fav)
 

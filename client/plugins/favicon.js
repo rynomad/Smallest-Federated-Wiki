@@ -26,7 +26,7 @@
   };
 
   window.plugins.favicon = {
-    create: function() {
+    create: function(db) {
       var angle, canvas, colprep, cos, ctx, dark, fav, light, p, scale, sin, x, y, _i, _j;
       $('body').append($('<canvas />').attr('width', 32).attr('height', 32).attr('id', 'favmaker').attr('display', 'none').hide());
       canvas = document.getElementById('favmaker');
@@ -48,14 +48,12 @@
           ctx.fillRect(x, y, 1, 1);
         }
       }
-      fav = canvas.toDataURL();
+      fav = {};
+      fav.dataUrl = canvas.toDataURL();
+      fav.type = 'favicon';
       $('#favicon').attr('href', fav);
       $('.favicon').attr('src', fav);
-      return $.post('/favicon.png', {
-        image: fav
-      }, function(data) {
-        return console.log(data);
-      });
+      return db.put(fav);
     }
   };
 

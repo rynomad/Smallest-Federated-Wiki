@@ -3,6 +3,7 @@
 
 ndn = require './ndn.coffee'
 revision = require './revision.coffee'
+plugin = require('./plugin.coffee')
 module.exports = repo = {}
 
 repo.ready = false
@@ -18,20 +19,51 @@ repositoryOpts = {
   ],
   onStoreReady: () ->
     repo.ready = true
-    $.get('/system/sitemap.json', (sitemap) ->  
-      for entry in sitemap
-        $.get("/#{entry.slug}.json", (json) ->
-          content = ndn.pageToContentObject(json)
-          onSuccess = () ->
-            console.log "new page from Server added to Repository"
-          onError = () ->
-            console.log "page from server already in IndexedDB"
-          repository.put(content, onSuccess, onError )
+    $.get('/system/sitemap.json', (sitemap) -> 
+        status.get(1, (favicon) ->
+          for entry in sitemap
+            $.get("/#{entry.slug}.json", (json) ->
+              json.favicon = favicon.dataUrl
+              content = ndn.pageToContentObject(json)
+              onSuccess = () ->
+                console.log "new page from Server added to Repository"
+              onError = () ->
+                console.log "page from server already in IndexedDB"
+              repository.put(content, onSuccess, onError )
+            )
         )
     )       
 }
 
+statusOpt= {
+  dbVersion: 1,
+  storeName: "status",
+  keypath: 'id',
+  autoincrement: true,
+  indexes: [
+    { name: 'type', unique: false, multiEntry: false }
+  ],
+  onStoreReady: () ->
+    onSuccess = (item) ->
+      if item != undefined
+        console.log "favicon found", item
+      else
+        console.log "favicon not found, generating..."
+        plugin.get 'favicon', (favicon) ->
+          favicon.create(status)
+    onError = () ->
+      console.log "favicon not found, generating..."
+      plugin.get 'favicon', (favicon) ->
+        favicon.create(status)
+    status.get(1, onSuccess, onError)
+}
+
+
+
+
+status = new IDBStore(statusOpt)
 repository = new IDBStore(repositoryOpts)
+
 
 #Check to see if a page is in the repository, and perform the appropriate callback
 repo.check = (pageInformation, ifCallback, elseCallback) ->

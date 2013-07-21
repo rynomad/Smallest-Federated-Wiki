@@ -1318,24 +1318,24 @@ emitHeader = function($header, $page, page) {
   site = $page.data('site');
   isRemotePage = (site != null) && site !== 'local' && site !== 'origin' && site !== 'view';
   header = '';
+  console.log(page.favicon);
   viewHere = wiki.asSlug(page.title) === 'welcome-visitors' ? "" : "/view/" + (wiki.asSlug(page.title));
   pageHeader = isRemotePage ? buildPageHeader({
     tooltip: site,
     header_href: "//" + site + "/view/welcome-visitors" + viewHere,
-    favicon_src: "http://" + site + "/favicon.png",
+    favicon_src: "" + page.favicon,
     page: page
   }) : buildPageHeader({
     tooltip: location.host,
     header_href: "/view/welcome-visitors" + viewHere,
-    favicon_src: "/favicon.png",
+    favicon_src: "{page.favicon}",
     page: page
   });
   $header.append(pageHeader);
   if (!isRemotePage) {
     $('img.favicon', $page).error(function(e) {
-      return plugin.get('favicon', function(favicon) {
-        return favicon.create();
-      });
+      $('#favicon').attr('href', page.favicon);
+      return $('.favicon').attr('src', page.favicon);
     });
   }
   if ($page.attr('id').match(/_rev/)) {
@@ -2890,7 +2890,35 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+  }
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
+};
+
+
+},{"./util.coffee":6}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var ndn, plugin, repo, repository, repositoryOpts, revision, status, statusOpt;
@@ -3136,35 +3164,7 @@ repository.insert = (contentObject) ->
 
 
 
-},{"./ndn.coffee":17,"./plugin.coffee":8,"./revision.coffee":12}],13:[function(require,module,exports){
-var util;
-
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
-  }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
-};
-
-
-},{"./util.coffee":6}],16:[function(require,module,exports){
+},{"./ndn.coffee":17,"./plugin.coffee":8,"./revision.coffee":12}],16:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

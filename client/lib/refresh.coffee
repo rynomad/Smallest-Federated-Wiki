@@ -75,29 +75,28 @@ emitHeader = ($header, $page, page) ->
   site = $page.data('site')
   isRemotePage = site? and site != 'local' and site != 'origin' and site != 'view'
   header = ''
-
+  console.log page.favicon
   viewHere = if wiki.asSlug(page.title) is 'welcome-visitors' then ""
   else "/view/#{wiki.asSlug(page.title)}"
   pageHeader = if isRemotePage
     buildPageHeader
       tooltip: site
       header_href: "//#{site}/view/welcome-visitors#{viewHere}"
-      favicon_src: "http://#{site}/favicon.png"
+      favicon_src: "#{page.favicon}"
       page: page
   else
     buildPageHeader
       tooltip: location.host
       header_href: "/view/welcome-visitors#{viewHere}"
-      favicon_src: "/favicon.png"
+      favicon_src: "{page.favicon}"
       page: page
 
   $header.append( pageHeader )
   
   unless isRemotePage
     $('img.favicon',$page).error (e)->
-      plugin.get 'favicon', (favicon) ->
-        favicon.create()
-
+      $('#favicon').attr('href', page.favicon)
+      $('.favicon').attr('src', page.favicon)
   if $page.attr('id').match /_rev/
     rev = page.journal.length-1
     date = page.journal[rev].date

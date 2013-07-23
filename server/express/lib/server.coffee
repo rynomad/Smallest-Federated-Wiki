@@ -35,7 +35,7 @@ wiki = require '../../../client/lib/wiki'
 pluginsFactory = require './plugins'
 Persona = require './persona_auth'
 
-require './wsproxy-udp.js'
+require './wsproxy-tcp.js'
 
 # pageFactory can be easily replaced here by requiring your own page handler
 # factory, which gets called with the argv object, and then has get and put

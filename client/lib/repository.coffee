@@ -26,9 +26,9 @@ repositoryOpts = {
               json.favicon = favicon.dataUrl
               content = ndn.pageToContentObject(json)
               onSuccess = () ->
-                console.log "new page from Server added to Repository"
+                #console.log "new page from Server added to Repository"
               onError = () ->
-                console.log "page from server already in IndexedDB"
+                #console.log "page from server already in IndexedDB"
               repository.put(content, onSuccess, onError )
             )
         )
@@ -46,13 +46,13 @@ statusOpt= {
   onStoreReady: () ->
     onSuccess = (item) ->
       if item != undefined
-        console.log "favicon found", item
+        #console.log "favicon found", item
       else
-        console.log "favicon not found, generating..."
+        #console.log "favicon not found, generating..."
         plugin.get 'favicon', (favicon) ->
           favicon.create(status)
     onError = () ->
-      console.log "favicon not found, generating..."
+      #console.log "favicon not found, generating..."
       plugin.get 'favicon', (favicon) ->
         favicon.create(status)
     status.get(1, onSuccess, onError)
@@ -64,26 +64,25 @@ statusOpt= {
 status = new IDBStore(statusOpt)
 repository = new IDBStore(repositoryOpts)
 
-
 #Check to see if a page is in the repository, and perform the appropriate callback
 repo.check = (pageInformation, ifCallback, elseCallback) ->
   new IDBStore repositoryOpts, () ->
     found = false
     onItem = (content) ->
       if content.uri == ndn.hostPrefix + 'page/' + pageInformation.slug + '.json/'
-        console.log content
+        #onsole.log content
         found = true
         page = content.object.content
-        console.log pageInformation
+        #console.log pageInformation
         page = revision.create pageInformation.rev, page if pageInformation.rev
         ifCallback(page, 'local')
     onCheckEnd = () ->
       done = true
       if found == false
-        console.log "page not found in Repository"
+        #console.log "page not found in Repository"
         elseCallback()
       else
-        console.log "page found in Repository"
+        #console.log "page found in Repository"
     repository.iterate(onItem, {
       index: 'uri'
       onEnd: onCheckEnd        
@@ -97,13 +96,13 @@ repo.update = (json) ->
     onmatch = (object, cursor, transaction) ->
       if content.uri == object.uri
         content.id = object.id
-        console.log content
+        #console.log content
         cursor.update(content)
         inserted = true
-        console.log "content found and updated"
+        #console.log "content found and updated"
     onEnding = ()->
         if inserted == false
-          console.log "content not not found; inserted"
+          #console.log "content not not found; inserted"
           repository.put(content)
     repository.iterate(onmatch, {
       index: 'uri'
@@ -113,8 +112,8 @@ repo.update = (json) ->
 
 repo.page = {}
 
-repo.getPage = (slug) ->
-  console.log "repo.ready ==", repo.ready
+repo.getPage = (slug, callback) ->
+  #console.log "repo.ready ==", repo.ready
   done = false
   if repo.ready == false
     return undefined
@@ -123,15 +122,16 @@ repo.getPage = (slug) ->
     page = undefined
     onItem = (content, cursor, transaction) ->
       if content.uri == hostPrefix + slug
-        console.log content
+        #console.log content
         found = true
-        repo.page = content.object.content
+        page = content.object.content
+        callback(page)
     onCheckEnd = () ->
       done = true
       if found == false
-        console.log "page not found in Repository"
+        #console.log "page not found in Repository"
       else
-        console.log "page found in Repository"
+        #console.log "page found in Repository"
     repository.query(onItem, {
       index: 'uri'
       onEnd: onCheckEnd        

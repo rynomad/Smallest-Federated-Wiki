@@ -2957,12 +2957,8 @@ repositoryOpts = {
             var content, onError, onSuccess;
             json.favicon = favicon.dataUrl;
             content = ndn.pageToContentObject(json);
-            onSuccess = function() {
-              return console.log("new page from Server added to Repository");
-            };
-            onError = function() {
-              return console.log("page from server already in IndexedDB");
-            };
+            onSuccess = function() {};
+            onError = function() {};
             return repository.put(content, onSuccess, onError);
           }));
         }
@@ -2988,16 +2984,14 @@ statusOpt = {
     var onError, onSuccess;
     onSuccess = function(item) {
       if (item !== void 0) {
-        return console.log("favicon found", item);
+
       } else {
-        console.log("favicon not found, generating...");
         return plugin.get('favicon', function(favicon) {
           return favicon.create(status);
         });
       }
     };
     onError = function() {
-      console.log("favicon not found, generating...");
       return plugin.get('favicon', function(favicon) {
         return favicon.create(status);
       });
@@ -3017,10 +3011,8 @@ repo.check = function(pageInformation, ifCallback, elseCallback) {
     onItem = function(content) {
       var page;
       if (content.uri === ndn.hostPrefix + 'page/' + pageInformation.slug + '.json/') {
-        console.log(content);
         found = true;
         page = content.object.content;
-        console.log(pageInformation);
         if (pageInformation.rev) {
           page = revision.create(pageInformation.rev, page);
         }
@@ -3031,10 +3023,9 @@ repo.check = function(pageInformation, ifCallback, elseCallback) {
       var done;
       done = true;
       if (found === false) {
-        console.log("page not found in Repository");
         return elseCallback();
       } else {
-        return console.log("page found in Repository");
+
       }
     };
     return repository.iterate(onItem, {
@@ -3052,15 +3043,12 @@ repo.update = function(json) {
     onmatch = function(object, cursor, transaction) {
       if (content.uri === object.uri) {
         content.id = object.id;
-        console.log(content);
         cursor.update(content);
-        inserted = true;
-        return console.log("content found and updated");
+        return inserted = true;
       }
     };
     onEnding = function() {
       if (inserted === false) {
-        console.log("content not not found; inserted");
         return repository.put(content);
       }
     };
@@ -3074,9 +3062,8 @@ repo.update = function(json) {
 
 repo.page = {};
 
-repo.getPage = function(slug) {
+repo.getPage = function(slug, callback) {
   var done, found, onCheckEnd, onItem, page;
-  console.log("repo.ready ==", repo.ready);
   done = false;
   if (repo.ready === false) {
     return void 0;
@@ -3085,17 +3072,17 @@ repo.getPage = function(slug) {
     page = void 0;
     onItem = function(content, cursor, transaction) {
       if (content.uri === hostPrefix + slug) {
-        console.log(content);
         found = true;
-        return repo.page = content.object.content;
+        page = content.object.content;
+        return callback(page);
       }
     };
     onCheckEnd = function() {
       done = true;
       if (found === false) {
-        return console.log("page not found in Repository");
+
       } else {
-        return console.log("page found in Repository");
+
       }
     };
     return repository.query(onItem, {
@@ -3316,13 +3303,39 @@ $(function() {
 
 
 },{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":15}],17:[function(require,module,exports){
-var component, hostComponents, ndn, _i, _len;
+var component, getClosure, hostComponents, hostloc, interfaces, ndn, repository, testinterest, testname, testndn, _i, _len;
+
+repository = require('./repository.coffee');
 
 module.exports = ndn = {};
 
+interfaces = [];
+
+ndn.newInterface = function(hosturl) {
+  var component, face, hostComponents, hostPrefix, prefix, _i, _len;
+  face = new NDN({
+    host: hosturl
+  });
+  hostPrefix = '/';
+  hostComponents = hosturl.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      hostPrefix = ("/" + component) + hostPrefix;
+    }
+  }
+  prefix = new Name(hostPrefix);
+  face.registerPrefix(prefix, new interfaceClosure(face, function(upcallInfo) {
+    return console.log(prefix);
+  }));
+  return interfaces.push(face);
+};
+
 ndn.hostPrefix = '/';
 
-hostComponents = location.host.split(':')[0].split('.');
+hostloc = location.host.split(':')[0];
+
+hostComponents = hostloc.split('.');
 
 for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
   component = hostComponents[_i];
@@ -3331,18 +3344,35 @@ for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
   }
 }
 
+ndn.newInterface('localhost');
+
 ndn.pageToContentObject = function(json) {
-  var content, name, uri;
+  var content, name, signed, uri;
   uri = ndn.hostPrefix + 'page/' + wiki.asSlug(json.title) + '.json/';
   name = new Name(uri);
+  signed = new SignedInfo();
   content = {};
-  content.object = new ContentObject(name, new SignedInfo(), json, new Signature());
+  content.object = new ContentObject(name, signed, json, new Signature());
   content.uri = uri;
   return content;
 };
 
+testndn = new NDN({
+  host: 'localhost'
+});
 
-},{}],18:[function(require,module,exports){
+testname = new Name('/localhost/page/welcome-visitors.json/');
+
+testinterest = new Interest(testname);
+
+getClosure = new ContentClosure(testndn, testname, testinterest, function(data) {
+  return console.log(data);
+});
+
+testndn.expressInterest(testname, getClosure);
+
+
+},{"./repository.coffee":14}],18:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');

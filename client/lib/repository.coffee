@@ -1,21 +1,31 @@
 ### Page Mirroring with IndexedDB ###
 # For Offline mode, we mirror all pages in the browsers IndexedDB using IDBWrapper (https://github.com/jensarps/IDBWrapper)
 
-ndn = require './ndn.coffee'
 revision = require './revision.coffee'
 plugin = require('./plugin.coffee')
 module.exports = repo = {}
 
+pageToContentObject = (json) ->
+  slug = wiki.asSlug(json.title) + '.json' # include json for easy MIME interpretation
+  name = new Name(slug)
+  signed = new SignedInfo()
+  content = {}
+  content.object= new ContentObject(name, signed, json, new Signature())
+  content.object.sign()
+  content.page = slug
+  return content
+
+
 repo.ready = false
 
 #Define the repository Object Store  
-repositoryOpts = {
+pageOpts = {
   dbVersion: 1,
   storeName: "page",
   keypath: 'id',
   autoincrement: false,
   indexes: [
-    { name: 'uri', unique: true, multiEntry: false }
+    { name: 'page', unique: false, multiEntry: false }
   ],
   onStoreReady: () ->
     repo.ready = true
@@ -24,7 +34,8 @@ repositoryOpts = {
           for entry in sitemap
             $.get("/#{entry.slug}.json", (json) ->
               json.favicon = favicon.dataUrl
-              content = ndn.pageToContentObject(json)
+              content = json
+              content.page = wiki.asSlug(json.title) + '.json'
               onSuccess = () ->
                 #console.log "new page from Server added to Repository"
               onError = () ->
@@ -35,7 +46,7 @@ repositoryOpts = {
     )       
 }
 
-statusOpt= {
+statusOpts= {
   dbVersion: 1,
   storeName: "status",
   keypath: 'id',
@@ -61,18 +72,18 @@ statusOpt= {
 
 
 
-status = new IDBStore(statusOpt)
-repository = new IDBStore(repositoryOpts)
+status = new IDBStore(statusOpts)
+repository = new IDBStore(pageOpts)
 
 #Check to see if a page is in the repository, and perform the appropriate callback
 repo.check = (pageInformation, ifCallback, elseCallback) ->
-  new IDBStore repositoryOpts, () ->
+  repository = new IDBStore pageOpts, () ->
     found = false
     onItem = (content) ->
-      if content.uri == ndn.hostPrefix + 'page/' + pageInformation.slug + '.json/'
+      if content.page == pageInformation.slug + '.json'
         #onsole.log content
         found = true
-        page = content.object.content
+        page = content
         #console.log pageInformation
         page = revision.create pageInformation.rev, page if pageInformation.rev
         ifCallback(page, 'local')
@@ -84,17 +95,17 @@ repo.check = (pageInformation, ifCallback, elseCallback) ->
       else
         #console.log "page found in Repository"
     repository.iterate(onItem, {
-      index: 'uri'
+      index: 'page'
       onEnd: onCheckEnd        
     })
     
 
 repo.update = (json) ->
-  new IDBStore repositoryOpts, () ->
-    content = ndn.pageToContentObject(json)
+  new IDBStore pageOpts, () ->
+    content = json
     inserted = false
     onmatch = (object, cursor, transaction) ->
-      if content.uri == object.uri
+      if content.page == object.page
         content.id = object.id
         #console.log content
         cursor.update(content)
@@ -105,37 +116,35 @@ repo.update = (json) ->
           #console.log "content not not found; inserted"
           repository.put(content)
     repository.iterate(onmatch, {
-      index: 'uri'
+      index: 'page'
       writeAccess: true
       onEnd: onEnding
     })
 
-repo.page = {}
-
 repo.getPage = (slug, callback) ->
-  #console.log "repo.ready ==", repo.ready
-  done = false
-  if repo.ready == false
-    return undefined
-  else
+  repository = new IDBStore(pageOpts, () ->
     found = false
-    page = undefined
+    page = null
+    console.log  'getting page ', slug
     onItem = (content, cursor, transaction) ->
-      if content.uri == hostPrefix + slug
-        #console.log content
+      console.log content
+      if content.page == slug
+        console.log content
         found = true
-        page = content.object.content
-        callback(page)
+        page = content
     onCheckEnd = () ->
       done = true
       if found == false
-        #console.log "page not found in Repository"
+        console.log "page not found in Repository"
       else
-        #console.log "page found in Repository"
-    repository.query(onItem, {
-      index: 'uri'
+        console.log "page found in Repository"
+        callback(page)
+    console.log repository.iterate(onItem, {
+      index: 'page'
       onEnd: onCheckEnd        
     })
+    
+  )
     
 ###
 

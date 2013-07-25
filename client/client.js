@@ -106,7 +106,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -475,33 +475,6 @@ $(function() {
 
 
 },{"./active.coffee":10,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
-
-
-},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -548,6 +521,33 @@ module.exports = function(owner) {
     e.preventDefault();
     return navigator.id.logout();
   });
+};
+
+
+},{}],5:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
 };
 
 
@@ -991,7 +991,7 @@ state.first = function() {
 
 
 },{"./active.coffee":10,"./wiki.coffee":2}],7:[function(require,module,exports){
-var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
+var addToJournal, ndn, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
 
 _ = require('underscore');
 
@@ -1006,6 +1006,8 @@ revision = require('./revision.coffee');
 addToJournal = require('./addToJournal.coffee');
 
 repository = require('./repository.coffee');
+
+ndn = require('./ndn.coffee');
 
 module.exports = pageHandler = {};
 
@@ -1209,7 +1211,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":13,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":15}],11:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./ndn.coffee":15,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1318,7 +1320,6 @@ emitHeader = function($header, $page, page) {
   site = $page.data('site');
   isRemotePage = (site != null) && site !== 'local' && site !== 'origin' && site !== 'view';
   header = '';
-  console.log(page.favicon);
   viewHere = wiki.asSlug(page.title) === 'welcome-visitors' ? "" : "/view/" + (wiki.asSlug(page.title));
   pageHeader = isRemotePage ? buildPageHeader({
     tooltip: site,
@@ -1575,7 +1576,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":13,"./neighborhood.coffee":16,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":15}],15:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./neighborhood.coffee":17,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],16:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2921,9 +2922,7 @@ module.exports = function(journalElement, action) {
 },{"./util.coffee":6}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
-var ndn, plugin, repo, repository, repositoryOpts, revision, status, statusOpt;
-
-ndn = require('./ndn.coffee');
+var pageOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
 
 revision = require('./revision.coffee');
 
@@ -2931,17 +2930,29 @@ plugin = require('./plugin.coffee');
 
 module.exports = repo = {};
 
+pageToContentObject = function(json) {
+  var content, name, signed, slug;
+  slug = wiki.asSlug(json.title) + '.json';
+  name = new Name(slug);
+  signed = new SignedInfo();
+  content = {};
+  content.object = new ContentObject(name, signed, json, new Signature());
+  content.object.sign();
+  content.page = slug;
+  return content;
+};
+
 repo.ready = false;
 
-repositoryOpts = {
+pageOpts = {
   dbVersion: 1,
   storeName: "page",
   keypath: 'id',
   autoincrement: false,
   indexes: [
     {
-      name: 'uri',
-      unique: true,
+      name: 'page',
+      unique: false,
       multiEntry: false
     }
   ],
@@ -2956,7 +2967,8 @@ repositoryOpts = {
           _results.push($.get("/" + entry.slug + ".json", function(json) {
             var content, onError, onSuccess;
             json.favicon = favicon.dataUrl;
-            content = ndn.pageToContentObject(json);
+            content = json;
+            content.page = wiki.asSlug(json.title) + '.json';
             onSuccess = function() {};
             onError = function() {};
             return repository.put(content, onSuccess, onError);
@@ -2968,7 +2980,7 @@ repositoryOpts = {
   }
 };
 
-statusOpt = {
+statusOpts = {
   dbVersion: 1,
   storeName: "status",
   keypath: 'id',
@@ -3000,19 +3012,19 @@ statusOpt = {
   }
 };
 
-status = new IDBStore(statusOpt);
+status = new IDBStore(statusOpts);
 
-repository = new IDBStore(repositoryOpts);
+repository = new IDBStore(pageOpts);
 
 repo.check = function(pageInformation, ifCallback, elseCallback) {
-  return new IDBStore(repositoryOpts, function() {
+  return repository = new IDBStore(pageOpts, function() {
     var found, onCheckEnd, onItem;
     found = false;
     onItem = function(content) {
       var page;
-      if (content.uri === ndn.hostPrefix + 'page/' + pageInformation.slug + '.json/') {
+      if (content.page === pageInformation.slug + '.json') {
         found = true;
-        page = content.object.content;
+        page = content;
         if (pageInformation.rev) {
           page = revision.create(pageInformation.rev, page);
         }
@@ -3029,19 +3041,19 @@ repo.check = function(pageInformation, ifCallback, elseCallback) {
       }
     };
     return repository.iterate(onItem, {
-      index: 'uri',
+      index: 'page',
       onEnd: onCheckEnd
     });
   });
 };
 
 repo.update = function(json) {
-  return new IDBStore(repositoryOpts, function() {
+  return new IDBStore(pageOpts, function() {
     var content, inserted, onEnding, onmatch;
-    content = ndn.pageToContentObject(json);
+    content = json;
     inserted = false;
     onmatch = function(object, cursor, transaction) {
-      if (content.uri === object.uri) {
+      if (content.page === object.page) {
         content.id = object.id;
         cursor.update(content);
         return inserted = true;
@@ -3053,43 +3065,42 @@ repo.update = function(json) {
       }
     };
     return repository.iterate(onmatch, {
-      index: 'uri',
+      index: 'page',
       writeAccess: true,
       onEnd: onEnding
     });
   });
 };
 
-repo.page = {};
-
 repo.getPage = function(slug, callback) {
-  var done, found, onCheckEnd, onItem, page;
-  done = false;
-  if (repo.ready === false) {
-    return void 0;
-  } else {
+  return repository = new IDBStore(pageOpts, function() {
+    var found, onCheckEnd, onItem, page;
     found = false;
-    page = void 0;
+    page = null;
+    console.log('getting page ', slug);
     onItem = function(content, cursor, transaction) {
-      if (content.uri === hostPrefix + slug) {
+      console.log(content);
+      if (content.page === slug) {
+        console.log(content);
         found = true;
-        page = content.object.content;
-        return callback(page);
+        return page = content;
       }
     };
     onCheckEnd = function() {
+      var done;
       done = true;
       if (found === false) {
-
+        return console.log("page not found in Repository");
       } else {
-
+        console.log("page found in Repository");
+        return callback(page);
       }
     };
-    return repository.query(onItem, {
-      index: 'uri',
+    return console.log(repository.iterate(onItem, {
+      index: 'page',
       onEnd: onCheckEnd
-    });
-  }
+    }));
+  });
 };
 
 /*
@@ -3151,7 +3162,89 @@ repository.insert = (contentObject) ->
 
 
 
-},{"./ndn.coffee":17,"./plugin.coffee":8,"./revision.coffee":12}],16:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":12}],15:[function(require,module,exports){
+var component, face, getClosure, handler, hostComponents, hostPrefix, hostloc, hosturl, interfaces, ndn, prefix, repo, testinterest, testname, testndn, _i, _j, _len, _len1;
+
+repo = require('./repository.coffee');
+
+module.exports = ndn = {};
+
+handler = function(prefix, upcallInfo) {
+  var contentStore, slug;
+  console.log(prefix.components.length);
+  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
+  if (contentStore === 'page') {
+    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
+    console.log(repo);
+    return repo.getPage(slug, function(pageCO) {
+      var co, signed;
+      signed = new SignedInfo();
+      console.log(pageCO);
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pageCO), new Signature());
+      co.sign();
+      upcallInfo.contentObject = co;
+      console.log(upcallInfo);
+      console.log('found page');
+      console.log(Closure);
+      return interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+    });
+  }
+};
+
+interfaces = [];
+
+hosturl = location.host.split(':')[0];
+
+face = new NDN({
+  host: hosturl
+});
+
+hostPrefix = '/';
+
+hostComponents = hosturl.split('.');
+
+for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+  component = hostComponents[_i];
+  if (component !== 'www') {
+    hostPrefix = ("/" + component) + hostPrefix;
+  }
+}
+
+prefix = new Name(hostPrefix);
+
+face.registerPrefix(prefix, new interfaceClosure(face, prefix, handler));
+
+interfaces.push(face);
+
+ndn.hostPrefix = '/';
+
+hostloc = location.host.split(':')[0];
+
+hostComponents = hostloc.split('.');
+
+for (_j = 0, _len1 = hostComponents.length; _j < _len1; _j++) {
+  component = hostComponents[_j];
+  if (component !== 'www') {
+    ndn.hostPrefix = ("/" + component) + ndn.hostPrefix;
+  }
+}
+
+testndn = new NDN({
+  host: 'localhost'
+});
+
+testname = new Name('/localhost/page/welcome-visitors.json/');
+
+testinterest = new Interest(testname);
+
+getClosure = new ContentClosure(testndn, testname, testinterest, function(data) {
+  return console.log(data);
+});
+
+testndn.expressInterest(testname, getClosure);
+
+
+},{"./repository.coffee":14}],17:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3302,77 +3395,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":15}],17:[function(require,module,exports){
-var component, getClosure, hostComponents, hostloc, interfaces, ndn, repository, testinterest, testname, testndn, _i, _len;
-
-repository = require('./repository.coffee');
-
-module.exports = ndn = {};
-
-interfaces = [];
-
-ndn.newInterface = function(hosturl) {
-  var component, face, hostComponents, hostPrefix, prefix, _i, _len;
-  face = new NDN({
-    host: hosturl
-  });
-  hostPrefix = '/';
-  hostComponents = hosturl.split('.');
-  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-    component = hostComponents[_i];
-    if (component !== 'www') {
-      hostPrefix = ("/" + component) + hostPrefix;
-    }
-  }
-  prefix = new Name(hostPrefix);
-  face.registerPrefix(prefix, new interfaceClosure(face, function(upcallInfo) {
-    return console.log(upcallInfo);
-  }));
-  return interfaces.push(face);
-};
-
-ndn.hostPrefix = '/';
-
-hostloc = location.host.split(':')[0];
-
-hostComponents = hostloc.split('.');
-
-for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-  component = hostComponents[_i];
-  if (component !== 'www') {
-    ndn.hostPrefix = ("/" + component) + ndn.hostPrefix;
-  }
-}
-
-ndn.newInterface('localhost');
-
-ndn.pageToContentObject = function(json) {
-  var content, name, signed, uri;
-  uri = ndn.hostPrefix + 'page/' + wiki.asSlug(json.title) + '.json/';
-  name = new Name(uri);
-  signed = new SignedInfo();
-  content = {};
-  content.object = new ContentObject(name, signed, json, new Signature());
-  content.uri = uri;
-  return content;
-};
-
-testndn = new NDN({
-  host: 'localhost'
-});
-
-testname = new Name('/localhost/page/welcome-visitors.json/');
-
-testinterest = new Interest(testname);
-
-getClosure = new ContentClosure(testndn, testname, testinterest, function(data) {
-  return console.log(data);
-});
-
-testndn.expressInterest(testname, getClosure);
-
-
-},{"./repository.coffee":14}],18:[function(require,module,exports){
+},{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],18:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');

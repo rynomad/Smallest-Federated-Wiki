@@ -75,7 +75,6 @@ emitHeader = ($header, $page, page) ->
   site = $page.data('site')
   isRemotePage = site? and site != 'local' and site != 'origin' and site != 'view'
   header = ''
-  console.log page.favicon
   viewHere = if wiki.asSlug(page.title) is 'welcome-visitors' then ""
   else "/view/#{wiki.asSlug(page.title)}"
   pageHeader = if isRemotePage

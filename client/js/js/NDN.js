@@ -138,7 +138,6 @@ function getEntryForRegisteredPrefix(name) {
 	for (var i = 0; i < NDN.CSTable.length; i++) {
 	  var entry = new Name(NDN.CSTable[i].name)
 	  var interestName = new Name(name)
-	  console.log(entry.components[0],interestName.components[0])
 	  var k = 0
 	  for (var p = 0; p < entry.components.length; p++) {
 	    if (interestName.components[p-1] == entry.components[p-1]) {

@@ -3326,7 +3326,7 @@ ndn.newInterface = function(hosturl) {
   }
   prefix = new Name(hostPrefix);
   face.registerPrefix(prefix, new interfaceClosure(face, function(upcallInfo) {
-    return console.log(prefix);
+    return console.log(upcallInfo);
   }));
   return interfaces.push(face);
 };

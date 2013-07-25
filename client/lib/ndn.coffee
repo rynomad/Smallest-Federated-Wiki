@@ -15,7 +15,7 @@ ndn.newInterface = (hosturl) ->
       hostPrefix = "/#{component}" + hostPrefix
   prefix = new Name(hostPrefix)
   face.registerPrefix(prefix, new interfaceClosure(face, (upcallInfo) ->
-    console.log prefix
+    console.log upcallInfo
   ))
   interfaces.push(face)
 

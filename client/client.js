@@ -1024,6 +1024,7 @@ recursiveGet = function(_arg) {
   var localContext, pageInformation, rev, site, slug, url, whenGotten, whenNotGotten;
   pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
   slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site;
+  pageInformation.slug = pageInformation.slug;
   if (site) {
     localContext = [];
   } else {
@@ -1128,6 +1129,7 @@ pushToLocal = function(pageElement, pagePutInfo, action) {
     return $(this).data("item");
   }).get();
   addToJournal(pageElement.find('.journal'), action);
+  page.page = wiki.asSlug(page.title) + '.json';
   console.log(page);
   return repository.update(page);
 };
@@ -2951,36 +2953,23 @@ interfaces = [];
 pageStoreOpts = {
   dbVersion: 1,
   storeName: "page",
-  keypath: 'id',
-  autoincrement: false,
-  indexes: [
-    {
-      name: 'page',
-      unique: false,
-      multiEntry: false
-    }
-  ],
+  autoIncrement: true,
   onStoreReady: function() {
-    repo.ready = true;
-    return $.get('/system/sitemap.json', function(sitemap) {
-      return status.get(1, function(favicon) {
-        var entry, _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = sitemap.length; _i < _len; _i++) {
-          entry = sitemap[_i];
-          _results.push($.get("/" + entry.slug + ".json", function(json) {
-            var content, onError, onSuccess;
-            json.favicon = favicon.dataUrl;
-            content = json;
-            content.page = wiki.asSlug(json.title) + '.json';
-            onSuccess = function() {};
-            onError = function() {};
-            return repository.put(content, onSuccess, onError);
-          }));
-        }
-        return _results;
-      });
-    });
+    /*
+    repo.ready = true
+    $.get('/system/sitemap.json', (sitemap) -> 
+        status.get(1, (favicon) ->
+          for entry in sitemap
+            $.get("/#{entry.slug}.json", (json) ->
+              json.favicon = favicon.dataUrl
+              content = json
+              content.page = wiki.asSlug(json.title) + '.json'
+              repo.update(json)
+            )
+        )
+    )
+    */
+
   }
 };
 
@@ -3016,106 +3005,120 @@ statusOpts = {
   }
 };
 
-status = new IDBStore(statusOpts);
-
-repository = new IDBStore(pageStoreOpts);
-
 repo.check = function(pageInformation, whenGotten, whenNotGotten) {
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var found, onCheckEnd, onItem;
-    found = false;
-    console.log(pageInformation.slug);
-    onItem = function(content) {
-      var page;
-      if (content.page === pageInformation.slug + '.json') {
-        found = true;
-        page = content;
-        if (pageInformation.rev) {
-          page = revision.create(pageInformation.rev, page);
-        }
-        return whenGotten(page, 'local');
-      }
-    };
-    onCheckEnd = function() {
-      var getClosure, interest, name;
-      if (found === false) {
-        console.log("page not found in Repository");
-        name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
-        interest = new Interest(name);
-        getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-          if (data != null) {
-            console.log(data);
-            return whenGotten(JSON.parse(data), 'local');
-          } else {
-            return whenNotGotten();
+  var page;
+  console.log(pageInformation.slug + '.json');
+  return page = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + pageInformation.slug + ".json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      var onItem, pageDisplayed;
+      pageDisplayed = false;
+      console.log('STORE READY');
+      onItem = function(page, cursor, transaction) {
+        if (pageDisplayed === false) {
+          if (pageInformation.rev) {
+            page = revision.create(pageInformation.rev, page);
           }
-        });
-        return interfaces[0].expressInterest(name, getClosure);
-      } else {
-        return console.log("page found in Repository");
-      }
-    };
-    return repository.iterate(onItem, {
-      index: 'page',
-      onEnd: onCheckEnd
-    });
+          whenGotten(page, 'local');
+          return pageDisplayed = true;
+        }
+      };
+      return page.iterate(onItem, {
+        order: 'DESC',
+        onEnd: function() {
+          var getClosure, interest, name;
+          if (pageDisplayed === false) {
+            console.log("page not found in Repository");
+            name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
+            interest = new Interest(name);
+            getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+              if (data != null) {
+                console.log(data);
+                return whenGotten(JSON.parse(data), 'local');
+              } else {
+                return whenNotGotten();
+              }
+            });
+            return interfaces[0].expressInterest(name, getClosure);
+          }
+        }
+      });
+    }
   });
 };
 
 repo.update = function(json) {
+  var repository;
   return repository = new IDBStore(pageStoreOpts, function() {
-    var content;
-    content = json;
-    content.page = wiki.asSlug(json.title) + '.json';
-    return repository.put(content);
-  });
-};
-
-repo.getPage = function(slug, callback) {
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var found, onCheckEnd, onItem, pages;
-    found = false;
-    pages = [];
-    console.log('getting page ', slug);
-    onItem = function(content, cursor, transaction) {
-      var page;
-      if (content.page === slug) {
-        console.log(content);
-        found = true;
-        page = content;
-        return pages.push(content);
+    var page;
+    console.log(json.page);
+    console.log(repository);
+    repository.put({
+      name: json.page
+    });
+    return page = new IDBStore({
+      dbVersion: 1,
+      storeName: "page/" + json.page,
+      keyPath: 'version',
+      autoIncrement: false,
+      onStoreReady: function() {
+        json.version = json.journal[json.journal.length - 1].date;
+        return page.put(json);
       }
-    };
-    onCheckEnd = function() {
-      var done;
-      done = true;
-      if (found === false) {
-        console.log("page not found in Repository");
-        return callback();
-      } else {
-        console.log("page found in Repository");
-        console.log(pages);
-        return callback(pages);
-      }
-    };
-    return repository.iterate(onItem, {
-      index: 'page',
-      onEnd: onCheckEnd
     });
   });
 };
 
+repo.getPage = function(slug, callback) {
+  var page;
+  return page = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + slug,
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      var onCheckEnd, onItem;
+      onItem = function(content, cursor, transaction) {
+        var found;
+        if (content.page === slug) {
+          console.log(content);
+          found = true;
+          page = content;
+          return callback(page);
+        }
+      };
+      onCheckEnd = function() {
+        var done;
+        return done = true;
+      };
+      return page.iterate(onItem, {
+        order: 'DESC',
+        onEnd: onCheckEnd
+      });
+    }
+  });
+};
+
+status = new IDBStore(statusOpts);
+
+repository = new IDBStore(pageStoreOpts);
+
 repo.interestHandler = function(prefix, upcallInfo) {
-  var contentStore, slug;
+  var contentStore, pageInformation, slug;
   console.log(prefix.components.length);
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
   if (contentStore === 'page') {
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
+    pageInformation = {};
+    pageInformation.slug = slug;
     return repo.getPage(slug, function(pages) {
       var co, signed;
       console.log(pages);
       signed = new SignedInfo();
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[pages.length - 1]), new Signature());
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages), new Signature());
       co.sign();
       upcallInfo.contentObject = co;
       interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
@@ -3146,71 +3149,6 @@ repo.registerFace = function(url) {
 repo.registerFace('localhost');
 
 repo.registerFace('127.0.0.1');
-
-/*
-repo.fetchPage = (pageInformation, whenGotten, whenNotGotten)
-  repo.getPage(pageInformation.slug, (page) ->
-    if page?
-      console.log page
-    else
-      console.log 'no page'
-  )
-
-repository.Stores(hostPrefix, () ->
-  console.log "Store Ready! " + hostPrefix
-)
-
-repository.evalComponent = (components, storePrefix, i) ->
-  component = components[i+1]
-  repository.Stores(storePrefix, (component) ->
-    i++
-    storePrefix = storePrefix + '/' + component      
-    store.get(component, repository.evalComponent(components, storePrefix, i))
-  )
-
-repository.evalInterest = (interest) ->
-  i = 0
-  components = interest.name.components
-  storePrefix = DataUtils.toString(components[i])
-  repository.evalComponent(components, storePrefix, i)
-
-repository.ndntest = () ->
-  
-  name = new Name('/test/uri/for/stuff')
-  content = new ContentObject(name, new SignedInfo(), "adflihsdalsdhfklghlfjhaljkghaljlakghaljhaldjfha;dkjfh;asdfhas;dfhasdf", new Signature())
-  interest = new Interest(name)
-  console.log name, content, interest
-  repository.evalInterest(content)
-  
-repository.addComponent = (storePrefix, components, i) ->
-  component = components[i+1]
-  if i < (components.length - 1)
-    repository.Stores(storePrefix, (component) ->
-      i++
-      storePrefix = storePrefix + '/' + DataUtils.toString(component)      
-      console.log storePrefix
-      store.put(components[i], repository.addComponent(storePrefix, components, i))
-    )
-
-repository.insert = (contentObject) ->
-  i = 0
-  components = contentObject.name.components
-  storePrefix = '/' + DataUtils.toString(components[i])
-  console.log storePrefix, components
-  repository.addComponent(storePrefix, components, i)
-
-
-  $.get('/system/sitemap.json', (sitemap) ->  
-         console.log sitemap     
-         for entry in sitemap
-           $.get("/#{entry.slug}.json", (json) ->
-             console.log json
-             entry.json = json
-             entry.steward = json.steward
-             repository.put(entry))
-  )
-*/
-
 
 
 },{"./plugin.coffee":8,"./revision.coffee":12}],17:[function(require,module,exports){

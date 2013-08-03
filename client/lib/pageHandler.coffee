@@ -18,6 +18,7 @@ pageFromLocalStorage = (slug)->
 
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   {slug,rev,site} = pageInformation
+  pageInformation.slug = pageInformation.slug
 
   if site
     localContext = []
@@ -87,6 +88,7 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
   page.journal = page.journal.concat(action)
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
   addToJournal pageElement.find('.journal'), action
+  page.page = wiki.asSlug(page.title) + '.json'
   console.log page
   repository.update(page)
   

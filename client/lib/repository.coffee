@@ -6,7 +6,7 @@ plugin = require('./plugin.coffee')
 module.exports = repo = {}
 
 pageToContentObject = (json) ->
-  slug = wiki.asSlug(json.title) + '.json' # include json for easy MIME interpretation
+  slug = wiki.asSlug(json.title)
   name = new Name(slug)
   signed = new SignedInfo()
   content = {}
@@ -15,11 +15,14 @@ pageToContentObject = (json) ->
   content.page = slug
   return content
 
+interfaces = []
 
-repo.ready = false
 
-#Define the repository Object Store  
-pageOpts = {
+
+
+
+#Define the page Object Store,  
+pageStoreOpts = {
   dbVersion: 1,
   storeName: "page",
   keypath: 'id',
@@ -73,12 +76,13 @@ statusOpts= {
 
 
 status = new IDBStore(statusOpts)
-repository = new IDBStore(pageOpts)
+repository = new IDBStore(pageStoreOpts)
 
 #Check to see if a page is in the repository, and perform the appropriate callback
-repo.check = (pageInformation, ifCallback, elseCallback) ->
-  repository = new IDBStore pageOpts, () ->
+repo.check = (pageInformation, whenGotten, whenNotGotten) ->
+  repository = new IDBStore pageStoreOpts, () ->
     found = false
+    console.log pageInformation.slug
     onItem = (content) ->
       if content.page == pageInformation.slug + '.json'
         #onsole.log content
@@ -86,67 +90,104 @@ repo.check = (pageInformation, ifCallback, elseCallback) ->
         page = content
         #console.log pageInformation
         page = revision.create pageInformation.rev, page if pageInformation.rev
-        ifCallback(page, 'local')
+        whenGotten(page, 'local')
     onCheckEnd = () ->
-      done = true
       if found == false
-        #console.log "page not found in Repository"
-        elseCallback()
+        console.log "page not found in Repository"
+        name = new Name( interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json')
+        interest = new Interest(name)
+        getClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+          if data?
+            console.log data
+            whenGotten(JSON.parse(data), 'local')
+          else
+            whenNotGotten()
+        )
+        interfaces[0].expressInterest(name, getClosure)
       else
-        #console.log "page found in Repository"
+        console.log "page found in Repository"
     repository.iterate(onItem, {
       index: 'page'
       onEnd: onCheckEnd        
     })
-    
 
 repo.update = (json) ->
-  new IDBStore pageOpts, () ->
+  repository = new IDBStore pageStoreOpts, () ->
     content = json
-    inserted = false
-    onmatch = (object, cursor, transaction) ->
-      if content.page == object.page
-        content.id = object.id
-        #console.log content
-        cursor.update(content)
-        inserted = true
-        #console.log "content found and updated"
-    onEnding = ()->
-        if inserted == false
-          #console.log "content not not found; inserted"
-          repository.put(content)
-    repository.iterate(onmatch, {
-      index: 'page'
-      writeAccess: true
-      onEnd: onEnding
-    })
+    content.page = wiki.asSlug(json.title) + '.json'
+    repository.put(content)
 
 repo.getPage = (slug, callback) ->
-  repository = new IDBStore(pageOpts, () ->
+  repository = new IDBStore(pageStoreOpts, () ->
     found = false
-    page = null
+    pages = []
     console.log  'getting page ', slug
     onItem = (content, cursor, transaction) ->
-      console.log content
       if content.page == slug
         console.log content
         found = true
         page = content
+        pages.push(content)
     onCheckEnd = () ->
       done = true
       if found == false
         console.log "page not found in Repository"
+        callback()
       else
         console.log "page found in Repository"
-        callback(page)
-    console.log repository.iterate(onItem, {
+        console.log pages
+        callback(pages)
+    repository.iterate(onItem, {
       index: 'page'
       onEnd: onCheckEnd        
     })
-    
   )
-    
+
+repo.interestHandler = (prefix, upcallInfo) ->
+  #logic goes here 
+  console.log prefix.components.length
+  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length])
+  if contentStore == 'page'
+    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1])
+    repo.getPage(slug, (pages) ->
+      console.log pages
+      signed = new SignedInfo()
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[pages.length - 1]), new Signature())
+      co.sign()
+      upcallInfo.contentObject = co
+      interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+      interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+    )
+
+repo.registerFace = (url) ->
+  face = new NDN({host: url})
+  hostPrefix = '/'
+  hostComponents = url.split('.')
+  for component in hostComponents
+    if component != 'www'
+      hostPrefix = "/#{component}" + hostPrefix
+  prefix = new Name(hostPrefix)
+  face.prefixURI = hostPrefix
+  face.registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler))
+  interfaces.push(face)
+  
+repo.registerFace('localhost')
+repo.registerFace('127.0.0.1')
+# Take a page JSON object and convert it to an entry with string uri and NDN contentObject
+# TODO: segmentation and timestamping
+
+
+
+
+
 ###
+repo.fetchPage = (pageInformation, whenGotten, whenNotGotten)
+  repo.getPage(pageInformation.slug, (page) ->
+    if page?
+      console.log page
+    else
+      console.log 'no page'
+  )
 
 repository.Stores(hostPrefix, () ->
   console.log "Store Ready! " + hostPrefix

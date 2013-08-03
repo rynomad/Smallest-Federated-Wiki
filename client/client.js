@@ -106,7 +106,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
+},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -475,6 +475,33 @@ $(function() {
 
 
 },{"./active.coffee":10,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -521,33 +548,6 @@ module.exports = function(owner) {
     e.preventDefault();
     return navigator.id.logout();
   });
-};
-
-
-},{}],5:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
 };
 
 
@@ -1107,7 +1107,6 @@ pageHandler.context = [];
 
 pushToLocal = function(pageElement, pagePutInfo, action) {
   var page, site;
-  page = pageFromLocalStorage(pagePutInfo.slug);
   if (action.type === 'create') {
     page = {
       title: action.item.title
@@ -1129,6 +1128,7 @@ pushToLocal = function(pageElement, pagePutInfo, action) {
     return $(this).data("item");
   }).get();
   addToJournal(pageElement.find('.journal'), action);
+  console.log(page);
   return repository.update(page);
 };
 
@@ -2891,6 +2891,10 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
+},{}],15:[function(require,module,exports){
+
+
+
 },{}],13:[function(require,module,exports){
 var util;
 
@@ -2922,7 +2926,7 @@ module.exports = function(journalElement, action) {
 },{"./util.coffee":6}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
-var pageOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
+var interfaces, pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
 
 revision = require('./revision.coffee');
 
@@ -2932,7 +2936,7 @@ module.exports = repo = {};
 
 pageToContentObject = function(json) {
   var content, name, signed, slug;
-  slug = wiki.asSlug(json.title) + '.json';
+  slug = wiki.asSlug(json.title);
   name = new Name(slug);
   signed = new SignedInfo();
   content = {};
@@ -2942,9 +2946,9 @@ pageToContentObject = function(json) {
   return content;
 };
 
-repo.ready = false;
+interfaces = [];
 
-pageOpts = {
+pageStoreOpts = {
   dbVersion: 1,
   storeName: "page",
   keypath: 'id',
@@ -3014,12 +3018,13 @@ statusOpts = {
 
 status = new IDBStore(statusOpts);
 
-repository = new IDBStore(pageOpts);
+repository = new IDBStore(pageStoreOpts);
 
-repo.check = function(pageInformation, ifCallback, elseCallback) {
-  return repository = new IDBStore(pageOpts, function() {
+repo.check = function(pageInformation, whenGotten, whenNotGotten) {
+  return repository = new IDBStore(pageStoreOpts, function() {
     var found, onCheckEnd, onItem;
     found = false;
+    console.log(pageInformation.slug);
     onItem = function(content) {
       var page;
       if (content.page === pageInformation.slug + '.json') {
@@ -3028,16 +3033,26 @@ repo.check = function(pageInformation, ifCallback, elseCallback) {
         if (pageInformation.rev) {
           page = revision.create(pageInformation.rev, page);
         }
-        return ifCallback(page, 'local');
+        return whenGotten(page, 'local');
       }
     };
     onCheckEnd = function() {
-      var done;
-      done = true;
+      var getClosure, interest, name;
       if (found === false) {
-        return elseCallback();
+        console.log("page not found in Repository");
+        name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
+        interest = new Interest(name);
+        getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+          if (data != null) {
+            console.log(data);
+            return whenGotten(JSON.parse(data), 'local');
+          } else {
+            return whenNotGotten();
+          }
+        });
+        return interfaces[0].expressInterest(name, getClosure);
       } else {
-
+        return console.log("page found in Repository");
       }
     };
     return repository.iterate(onItem, {
@@ -3048,62 +3063,98 @@ repo.check = function(pageInformation, ifCallback, elseCallback) {
 };
 
 repo.update = function(json) {
-  return new IDBStore(pageOpts, function() {
-    var content, inserted, onEnding, onmatch;
+  return repository = new IDBStore(pageStoreOpts, function() {
+    var content;
     content = json;
-    inserted = false;
-    onmatch = function(object, cursor, transaction) {
-      if (content.page === object.page) {
-        content.id = object.id;
-        cursor.update(content);
-        return inserted = true;
-      }
-    };
-    onEnding = function() {
-      if (inserted === false) {
-        return repository.put(content);
-      }
-    };
-    return repository.iterate(onmatch, {
-      index: 'page',
-      writeAccess: true,
-      onEnd: onEnding
-    });
+    content.page = wiki.asSlug(json.title) + '.json';
+    return repository.put(content);
   });
 };
 
 repo.getPage = function(slug, callback) {
-  return repository = new IDBStore(pageOpts, function() {
-    var found, onCheckEnd, onItem, page;
+  return repository = new IDBStore(pageStoreOpts, function() {
+    var found, onCheckEnd, onItem, pages;
     found = false;
-    page = null;
+    pages = [];
     console.log('getting page ', slug);
     onItem = function(content, cursor, transaction) {
-      console.log(content);
+      var page;
       if (content.page === slug) {
         console.log(content);
         found = true;
-        return page = content;
+        page = content;
+        return pages.push(content);
       }
     };
     onCheckEnd = function() {
       var done;
       done = true;
       if (found === false) {
-        return console.log("page not found in Repository");
+        console.log("page not found in Repository");
+        return callback();
       } else {
         console.log("page found in Repository");
-        return callback(page);
+        console.log(pages);
+        return callback(pages);
       }
     };
-    return console.log(repository.iterate(onItem, {
+    return repository.iterate(onItem, {
       index: 'page',
       onEnd: onCheckEnd
-    }));
+    });
   });
 };
 
+repo.interestHandler = function(prefix, upcallInfo) {
+  var contentStore, slug;
+  console.log(prefix.components.length);
+  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
+  if (contentStore === 'page') {
+    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
+    return repo.getPage(slug, function(pages) {
+      var co, signed;
+      console.log(pages);
+      signed = new SignedInfo();
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[pages.length - 1]), new Signature());
+      co.sign();
+      upcallInfo.contentObject = co;
+      interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+      return interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+    });
+  }
+};
+
+repo.registerFace = function(url) {
+  var component, face, hostComponents, hostPrefix, prefix, _i, _len;
+  face = new NDN({
+    host: url
+  });
+  hostPrefix = '/';
+  hostComponents = url.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      hostPrefix = ("/" + component) + hostPrefix;
+    }
+  }
+  prefix = new Name(hostPrefix);
+  face.prefixURI = hostPrefix;
+  face.registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler));
+  return interfaces.push(face);
+};
+
+repo.registerFace('localhost');
+
+repo.registerFace('127.0.0.1');
+
 /*
+repo.fetchPage = (pageInformation, whenGotten, whenNotGotten)
+  repo.getPage(pageInformation.slug, (page) ->
+    if page?
+      console.log page
+    else
+      console.log 'no page'
+  )
 
 repository.Stores(hostPrefix, () ->
   console.log "Store Ready! " + hostPrefix
@@ -3162,89 +3213,7 @@ repository.insert = (contentObject) ->
 
 
 
-},{"./plugin.coffee":8,"./revision.coffee":12}],15:[function(require,module,exports){
-var component, face, getClosure, handler, hostComponents, hostPrefix, hostloc, hosturl, interfaces, ndn, prefix, repo, testinterest, testname, testndn, _i, _j, _len, _len1;
-
-repo = require('./repository.coffee');
-
-module.exports = ndn = {};
-
-handler = function(prefix, upcallInfo) {
-  var contentStore, slug;
-  console.log(prefix.components.length);
-  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
-  if (contentStore === 'page') {
-    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
-    console.log(repo);
-    return repo.getPage(slug, function(pageCO) {
-      var co, signed;
-      signed = new SignedInfo();
-      console.log(pageCO);
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pageCO), new Signature());
-      co.sign();
-      upcallInfo.contentObject = co;
-      console.log(upcallInfo);
-      console.log('found page');
-      console.log(Closure);
-      return interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-    });
-  }
-};
-
-interfaces = [];
-
-hosturl = location.host.split(':')[0];
-
-face = new NDN({
-  host: hosturl
-});
-
-hostPrefix = '/';
-
-hostComponents = hosturl.split('.');
-
-for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-  component = hostComponents[_i];
-  if (component !== 'www') {
-    hostPrefix = ("/" + component) + hostPrefix;
-  }
-}
-
-prefix = new Name(hostPrefix);
-
-face.registerPrefix(prefix, new interfaceClosure(face, prefix, handler));
-
-interfaces.push(face);
-
-ndn.hostPrefix = '/';
-
-hostloc = location.host.split(':')[0];
-
-hostComponents = hostloc.split('.');
-
-for (_j = 0, _len1 = hostComponents.length; _j < _len1; _j++) {
-  component = hostComponents[_j];
-  if (component !== 'www') {
-    ndn.hostPrefix = ("/" + component) + ndn.hostPrefix;
-  }
-}
-
-testndn = new NDN({
-  host: 'localhost'
-});
-
-testname = new Name('/localhost/page/welcome-visitors.json/');
-
-testinterest = new Interest(testname);
-
-getClosure = new ContentClosure(testndn, testname, testinterest, function(data) {
-  return console.log(data);
-});
-
-testndn.expressInterest(testname, getClosure);
-
-
-},{"./repository.coffee":14}],17:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":12}],17:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

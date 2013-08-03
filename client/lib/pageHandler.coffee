@@ -78,7 +78,6 @@ pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 pageHandler.context = []
 
 pushToLocal = (pageElement, pagePutInfo, action) ->
-  page = pageFromLocalStorage pagePutInfo.slug
   page = {title: action.item.title} if action.type == 'create'
   page ||= pageElement.data("data")
   page.journal = [] unless page.journal?
@@ -88,6 +87,7 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
   page.journal = page.journal.concat(action)
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
   addToJournal pageElement.find('.journal'), action
+  console.log page
   repository.update(page)
   
 

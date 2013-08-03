@@ -1107,7 +1107,7 @@ pageHandler.get = function(_arg) {
 pageHandler.context = [];
 
 pushToLocal = function(pageElement, pagePutInfo, action) {
-  var page, site;
+  var page, site, version, _i, _ref;
   if (action.type === 'create') {
     page = {
       title: action.item.title
@@ -1130,6 +1130,14 @@ pushToLocal = function(pageElement, pagePutInfo, action) {
   }).get();
   addToJournal(pageElement.find('.journal'), action);
   page.page = wiki.asSlug(page.title) + '.json';
+  page.excludes = [];
+  _ref = page.journal;
+  for (_i = _ref.length - 1; _i >= 0; _i += -1) {
+    version = _ref[_i];
+    if (version.type !== 'fork') {
+      page.excludes.push(version.date);
+    }
+  }
   console.log(page);
   return repository.update(page);
 };
@@ -3016,7 +3024,6 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
     onStoreReady: function() {
       var onItem, pageDisplayed;
       pageDisplayed = false;
-      console.log('STORE READY');
       onItem = function(page, cursor, transaction) {
         if (pageDisplayed === false) {
           if (pageInformation.rev) {
@@ -3080,19 +3087,21 @@ repo.getPage = function(slug, callback) {
     keyPath: 'version',
     autoIncrement: false,
     onStoreReady: function() {
-      var onCheckEnd, onItem;
+      var onCheckEnd, onItem, pages;
+      pages = [];
       onItem = function(content, cursor, transaction) {
         var found;
         if (content.page === slug) {
           console.log(content);
           found = true;
           page = content;
-          return callback(page);
+          return pages.push(page);
         }
       };
       onCheckEnd = function() {
         var done;
-        return done = true;
+        done = true;
+        return callback(pages);
       };
       return page.iterate(onItem, {
         order: 'DESC',
@@ -3107,18 +3116,24 @@ status = new IDBStore(statusOpts);
 repository = new IDBStore(pageStoreOpts);
 
 repo.interestHandler = function(prefix, upcallInfo) {
-  var contentStore, pageInformation, slug;
+  var contentStore, slug;
   console.log(prefix.components.length);
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
   if (contentStore === 'page') {
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
-    pageInformation = {};
-    pageInformation.slug = slug;
     return repo.getPage(slug, function(pages) {
-      var co, signed;
-      console.log(pages);
+      var co, interest, page, signed, _i, _len;
+      console.log(pages, upcallInfo.interest.name.to_uri);
+      interest = upcallInfo.interest;
+      console.log(interest.name.to_uri);
       signed = new SignedInfo();
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages), new Signature());
+      for (_i = 0, _len = pages.length; _i < _len; _i++) {
+        page = pages[_i];
+        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true) {
+          console.log(page);
+        }
+      }
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[0]), new Signature());
       co.sign();
       upcallInfo.contentObject = co;
       interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));

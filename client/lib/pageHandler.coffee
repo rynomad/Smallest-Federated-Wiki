@@ -89,6 +89,10 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
   addToJournal pageElement.find('.journal'), action
   page.page = wiki.asSlug(page.title) + '.json'
+  page.excludes = []
+  for version in page.journal by -1
+    if version.type != 'fork'
+      page.excludes.push(version.date)
   console.log page
   repository.update(page)
   

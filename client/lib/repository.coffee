@@ -80,7 +80,6 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
     autoIncrement: false,
     onStoreReady: () ->
       pageDisplayed = false
-      console.log 'STORE READY'
       onItem = (page, cursor, transaction) ->
         if pageDisplayed == false
           page = revision.create pageInformation.rev, page if pageInformation.rev
@@ -129,14 +128,16 @@ repo.getPage = (slug, callback) ->
       keyPath: 'version',
       autoIncrement: false,
       onStoreReady: () ->
+        pages = []
         onItem = (content, cursor, transaction) ->
           if content.page == slug
             console.log content
             found = true
             page = content
-            callback(page)
+            pages.push(page)
         onCheckEnd = () ->
             done = true
+            callback pages
         page.iterate(onItem, {
           order: 'DESC',
           onEnd: onCheckEnd        
@@ -153,12 +154,15 @@ repo.interestHandler = (prefix, upcallInfo) ->
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length])
   if contentStore == 'page'
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1])
-    pageInformation = {}
-    pageInformation.slug = slug
     repo.getPage(slug, (pages) ->
-      console.log pages
+      console.log pages, upcallInfo.interest.name.to_uri
+      interest = upcallInfo.interest
+      console.log interest.name.to_uri
       signed = new SignedInfo()
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages), new Signature())
+      for page in pages
+        if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true
+          console.log page
+      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[0]), new Signature())
       co.sign()
       upcallInfo.contentObject = co
       interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))

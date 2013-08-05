@@ -53,21 +53,17 @@ statusOpts= {
   ],
   onStoreReady: () ->
     onSuccess = (item) ->
-      if item != undefined
+      if item != null
         repo.favicon = item.dataUrl
         console.log item
       else
         #console.log "favicon not found, generating..."
         plugin.get 'favicon', (favicon) ->
-          favicon.create(status)
-          status.get(1, (item) ->
-            console.log item
-            repo.favicon = item.dataUrl
-          )
+          favicon.create(status, repo)
     onError = () ->
       #console.log "favicon not found, generating..."
       plugin.get 'favicon', (favicon) ->
-        favicon.create(status)
+        favicon.create(status, repo)
     status.get(1, onSuccess, onError)
 }
 

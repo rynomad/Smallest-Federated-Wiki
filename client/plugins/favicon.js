@@ -26,7 +26,7 @@
   };
 
   window.plugins.favicon = {
-    create: function(db) {
+    create: function(db, repo) {
       var angle, canvas, colprep, cos, ctx, dark, fav, light, p, scale, sin, x, y, _i, _j;
       $('body').append($('<canvas />').attr('width', 32).attr('height', 32).attr('id', 'favmaker').attr('display', 'none').hide());
       canvas = document.getElementById('favmaker');
@@ -53,7 +53,8 @@
       fav.type = 'favicon';
       $('#favicon').attr('href', fav);
       $('.favicon').attr('src', fav);
-      return db.put(fav);
+      db.put(fav);
+      return repo.favicon = fav.dataUrl;
     }
   };
 

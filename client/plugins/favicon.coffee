@@ -28,7 +28,7 @@ hsltorgb = (h, s, l) ->
 
 
 window.plugins.favicon =
-  create: (db) ->
+  create: (db, repo) ->
     $('body').append(
       $('<canvas />').attr('width', 32).attr('height', 32).attr('id', 'favmaker').attr('display', 'none').hide()
     )
@@ -54,4 +54,5 @@ window.plugins.favicon =
     $('#favicon').attr('href', fav)
     $('.favicon').attr('src', fav)
     db.put(fav)
+    repo.favicon = fav.dataUrl
 

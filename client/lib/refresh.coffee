@@ -88,7 +88,7 @@ emitHeader = ($header, $page, page) ->
     buildPageHeader
       tooltip: location.host
       header_href: "/view/welcome-visitors#{viewHere}"
-      favicon_src: "{page.favicon}"
+      favicon_src: "#{page.favicon}"
       page: page
 
   $header.append( pageHeader )

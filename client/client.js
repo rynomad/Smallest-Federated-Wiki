@@ -1340,7 +1340,7 @@ emitHeader = function($header, $page, page) {
   }) : buildPageHeader({
     tooltip: location.host,
     header_href: "/view/welcome-visitors" + viewHere,
-    favicon_src: "{page.favicon}",
+    favicon_src: "" + page.favicon,
     page: page
   });
   $header.append(pageHeader);
@@ -2991,22 +2991,18 @@ statusOpts = {
   onStoreReady: function() {
     var onError, onSuccess;
     onSuccess = function(item) {
-      if (item !== void 0) {
+      if (item !== null) {
         repo.favicon = item.dataUrl;
         return console.log(item);
       } else {
         return plugin.get('favicon', function(favicon) {
-          favicon.create(status);
-          return status.get(1, function(item) {
-            console.log(item);
-            return repo.favicon = item.dataUrl;
-          });
+          return favicon.create(status, repo);
         });
       }
     };
     onError = function() {
       return plugin.get('favicon', function(favicon) {
-        return favicon.create(status);
+        return favicon.create(status, repo);
       });
     };
     return status.get(1, onSuccess, onError);

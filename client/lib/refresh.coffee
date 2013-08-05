@@ -117,6 +117,7 @@ emitTwins = wiki.emitTwins = ($page) ->
     viewing = Math.floor(viewing/1000)*1000
     bins = {newer:[], same:[], older:[]}
     # {fed.wiki.org: [{slug: "happenings", title: "Happenings", date: 1358975303000, synopsis: "Changes here ..."}]}
+    console.log wiki.neighborhood
     for remoteSite, info of wiki.neighborhood
       if remoteSite != site and info.sitemap?
         for item in info.sitemap

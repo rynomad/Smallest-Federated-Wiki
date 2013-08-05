@@ -94,10 +94,31 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
             console.log "page not found in Repository"
             name = new Name( interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json')
             interest = new Interest(name)
+            template = {}
+            exclusions = []
+            
             getClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
               if data?
                 console.log data
                 whenGotten(JSON.parse(data), 'local')
+                json = JSON.parse(data)
+                json.version = json.journal[json.journal.length - 1].date
+                page.put json
+                recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+                  if data?
+                    json = JSON.parse(data)
+                    json.version = json.journal[json.journal.length - 1].date
+                    page.put json
+                    console.log 'got another version', json
+                    for entry in json.excludes
+                      string = entry + ''
+                      exclusions.push DataUtils.toNumbersFromString(string)
+                    template.exclude = new Exclude(exclusions)
+                    console.log exclusions
+                    interest.exclude = template.exclude
+                    interfaces[0].expressInterest(name, recursiveClosure, template)
+                )
+                interfaces[0].expressInterest(name, recursiveClosure)
               else
                 whenNotGotten()
             )
@@ -161,12 +182,11 @@ repo.interestHandler = (prefix, upcallInfo) ->
       signed = new SignedInfo()
       for page in pages
         if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true
-          console.log page
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[0]), new Signature())
-      co.sign()
-      upcallInfo.contentObject = co
-      interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
-      interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
+          co.sign()
+          upcallInfo.contentObject = co
+          interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+          interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
     )
 
 repo.registerFace = (url) ->

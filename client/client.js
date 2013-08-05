@@ -1372,6 +1372,7 @@ emitTwins = wiki.emitTwins = function($page) {
       same: [],
       older: []
     };
+    console.log(wiki.neighborhood);
     _ref2 = wiki.neighborhood;
     for (remoteSite in _ref2) {
       info = _ref2[remoteSite];
@@ -3036,15 +3037,41 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
       return page.iterate(onItem, {
         order: 'DESC',
         onEnd: function() {
-          var getClosure, interest, name;
+          var exclusions, getClosure, interest, name, template;
           if (pageDisplayed === false) {
             console.log("page not found in Repository");
             name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
             interest = new Interest(name);
+            template = {};
+            exclusions = [];
             getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+              var json, recursiveClosure;
               if (data != null) {
                 console.log(data);
-                return whenGotten(JSON.parse(data), 'local');
+                whenGotten(JSON.parse(data), 'local');
+                json = JSON.parse(data);
+                json.version = json.journal[json.journal.length - 1].date;
+                page.put(json);
+                recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+                  var entry, string, _i, _len, _ref;
+                  if (data != null) {
+                    json = JSON.parse(data);
+                    json.version = json.journal[json.journal.length - 1].date;
+                    page.put(json);
+                    console.log('got another version', json);
+                    _ref = json.excludes;
+                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                      entry = _ref[_i];
+                      string = entry + '';
+                      exclusions.push(DataUtils.toNumbersFromString(string));
+                    }
+                    template.exclude = new Exclude(exclusions);
+                    console.log(exclusions);
+                    interest.exclude = template.exclude;
+                    return interfaces[0].expressInterest(name, recursiveClosure, template);
+                  }
+                });
+                return interfaces[0].expressInterest(name, recursiveClosure);
               } else {
                 return whenNotGotten();
               }
@@ -3122,22 +3149,25 @@ repo.interestHandler = function(prefix, upcallInfo) {
   if (contentStore === 'page') {
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
     return repo.getPage(slug, function(pages) {
-      var co, interest, page, signed, _i, _len;
+      var co, interest, page, signed, _i, _len, _results;
       console.log(pages, upcallInfo.interest.name.to_uri);
       interest = upcallInfo.interest;
       console.log(interest.name.to_uri);
       signed = new SignedInfo();
+      _results = [];
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         page = pages[_i];
         if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true) {
-          console.log(page);
+          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
+          co.sign();
+          upcallInfo.contentObject = co;
+          interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+          _results.push(interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
+        } else {
+          _results.push(void 0);
         }
       }
-      co = new ContentObject(upcallInfo.interest.name, signed, JSON.stringify(pages[0]), new Signature());
-      co.sign();
-      upcallInfo.contentObject = co;
-      interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-      return interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+      return _results;
     });
   }
 };

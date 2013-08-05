@@ -134,11 +134,7 @@ ContentClosure.prototype.upcall = function(kind, upcallInfo) {
         // We are not doing segments, so just finish.
         console.log('contentObject : ',contentObject);
         this.fullcontent = DataUtils.toString(contentObject.content);
-        var components = contentObject.name.components.slice
-            (0, contentObject.name.components.length );
-        var version = DataUtils.toString(components[2])
-        this.callback(this.fullcontent,version);
-        this.contentSha256.update(contentObject.content);
+        this.callback(this.fullcontent);
 
 
 

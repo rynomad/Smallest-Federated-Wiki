@@ -79,14 +79,13 @@ pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 pageHandler.context = []
 
 pushToLocal = (pageElement, pagePutInfo, action) ->
-  page = {title: action.item.title} if action.type == 'create'
-  page ||= pageElement.data("data")
+  page = pageElement.data("data")
   page.journal = [] unless page.journal?
   if (site=action['fork'])?
-    page.journal = page.journal.concat({'type':'fork','site':site})
+    page.journal = page.journal.concat({'type':'fork','site':site, 'date': new Date().getTime()})
     delete action['fork']
   page.journal = page.journal.concat(action)
-  page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get()
+  page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get() if action.type != 'create'
   addToJournal pageElement.find('.journal'), action
   page.page = wiki.asSlug(page.title) + '.json'
   page.excludes = []

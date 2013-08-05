@@ -107,7 +107,6 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
                 recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
                   if data?
                     json = JSON.parse(data)
-                    json.version = json.journal[json.journal.length - 1].date
                     page.put json
                     console.log 'got another version', json
                     for entry in json.excludes
@@ -138,6 +137,9 @@ repo.update = (json) ->
       autoIncrement: false,
       onStoreReady: () ->
         json.version = json.journal[json.journal.length - 1].date
+        for version in json.journal
+          page.remove (version.date)
+          console.log 'removced 0', version.date
         page.put json
     })
   )
@@ -176,17 +178,18 @@ repo.interestHandler = (prefix, upcallInfo) ->
   if contentStore == 'page'
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1])
     repo.getPage(slug, (pages) ->
-      console.log pages, upcallInfo.interest.name.to_uri
       interest = upcallInfo.interest
-      console.log interest.name.to_uri
       signed = new SignedInfo()
+      sent = false
       for page in pages
-        if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true
+        if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true && sent == false
+          console.log page.version, interest.excludes
           co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
           co.sign()
           upcallInfo.contentObject = co
           interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
           interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+          sent == true
     )
 
 repo.registerFace = (url) ->

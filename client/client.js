@@ -1108,26 +1108,24 @@ pageHandler.context = [];
 
 pushToLocal = function(pageElement, pagePutInfo, action) {
   var page, site, version, _i, _ref;
-  if (action.type === 'create') {
-    page = {
-      title: action.item.title
-    };
-  }
-  page || (page = pageElement.data("data"));
+  page = pageElement.data("data");
   if (page.journal == null) {
     page.journal = [];
   }
   if ((site = action['fork']) != null) {
     page.journal = page.journal.concat({
       'type': 'fork',
-      'site': site
+      'site': site,
+      'date': new Date().getTime()
     });
     delete action['fork'];
   }
   page.journal = page.journal.concat(action);
-  page.story = $(pageElement).find(".item").map(function() {
-    return $(this).data("item");
-  }).get();
+  if (action.type !== 'create') {
+    page.story = $(pageElement).find(".item").map(function() {
+      return $(this).data("item");
+    }).get();
+  }
   addToJournal(pageElement.find('.journal'), action);
   page.page = wiki.asSlug(page.title) + '.json';
   page.excludes = [];
@@ -3056,7 +3054,6 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
                   var entry, string, _i, _len, _ref;
                   if (data != null) {
                     json = JSON.parse(data);
-                    json.version = json.journal[json.journal.length - 1].date;
                     page.put(json);
                     console.log('got another version', json);
                     _ref = json.excludes;
@@ -3099,7 +3096,14 @@ repo.update = function(json) {
       keyPath: 'version',
       autoIncrement: false,
       onStoreReady: function() {
+        var version, _i, _len, _ref;
         json.version = json.journal[json.journal.length - 1].date;
+        _ref = json.journal;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          version = _ref[_i];
+          page.remove(version.date);
+          console.log('removced 0', version.date);
+        }
         return page.put(json);
       }
     });
@@ -3149,20 +3153,21 @@ repo.interestHandler = function(prefix, upcallInfo) {
   if (contentStore === 'page') {
     slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
     return repo.getPage(slug, function(pages) {
-      var co, interest, page, signed, _i, _len, _results;
-      console.log(pages, upcallInfo.interest.name.to_uri);
+      var co, interest, page, sent, signed, _i, _len, _results;
       interest = upcallInfo.interest;
-      console.log(interest.name.to_uri);
       signed = new SignedInfo();
+      sent = false;
       _results = [];
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         page = pages[_i];
-        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true) {
+        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
+          console.log(page.version, interest.excludes);
           co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
           co.sign();
           upcallInfo.contentObject = co;
           interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-          _results.push(interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
+          interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+          _results.push(sent === true);
         } else {
           _results.push(void 0);
         }

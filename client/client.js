@@ -1129,6 +1129,7 @@ pushToLocal = function(pageElement, pagePutInfo, action) {
   addToJournal(pageElement.find('.journal'), action);
   page.page = wiki.asSlug(page.title) + '.json';
   page.excludes = [];
+  page.favicon = repository.favicon;
   _ref = page.journal;
   for (_i = _ref.length - 1; _i >= 0; _i += -1) {
     version = _ref[_i];
@@ -1220,7 +1221,7 @@ pageHandler.put = function(pageElement, action) {
 
 
 },{"./addToJournal.coffee":13,"./ndn.coffee":15,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],11:[function(require,module,exports){
-var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, state, util, wiki, _,
+var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, util, wiki, _,
   __slice = [].slice;
 
 _ = require('underscore');
@@ -1238,6 +1239,8 @@ neighborhood = require('./neighborhood.coffee');
 addToJournal = require('./addToJournal.coffee');
 
 wiki = require('./wiki.coffee');
+
+repository = require('./repository.coffee');
 
 handleDragging = function(evt, ui) {
   var action, before, beforeElement, destinationPageElement, equals, item, itemElement, moveFromPage, moveToPage, moveWithinPage, order, sourcePageElement, sourceSite, thisPageElement;
@@ -1356,14 +1359,14 @@ emitHeader = function($header, $page, page) {
 };
 
 emitTwins = wiki.emitTwins = function($page) {
-  var actions, bin, bins, flags, i, info, item, legend, page, remoteSite, site, slug, twins, viewing, _i, _len, _ref, _ref1, _ref2, _ref3;
+  var actions, bins, page, site, slug, viewing, _ref;
   page = $page.data('data');
   site = $page.data('site') || window.location.host;
   if (site === 'view' || site === 'origin') {
     site = window.location.host;
   }
   slug = wiki.asSlug(page.title);
-  if (((actions = (_ref = page.journal) != null ? _ref.length : void 0) != null) && ((viewing = (_ref1 = page.journal[actions - 1]) != null ? _ref1.date : void 0) != null)) {
+  if (((actions = (_ref = page.journal) != null ? _ref.length : void 0) != null) && ((viewing = page.version) != null)) {
     viewing = Math.floor(viewing / 1000) * 1000;
     bins = {
       newer: [],
@@ -1371,49 +1374,40 @@ emitTwins = wiki.emitTwins = function($page) {
       older: []
     };
     console.log(wiki.neighborhood);
-    _ref2 = wiki.neighborhood;
-    for (remoteSite in _ref2) {
-      info = _ref2[remoteSite];
-      if (remoteSite !== site && (info.sitemap != null)) {
-        _ref3 = info.sitemap;
-        for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-          item = _ref3[_i];
-          if (item.slug === slug) {
-            bin = item.date > viewing ? bins.newer : item.date < viewing ? bins.older : bins.same;
-            bin.push({
-              remoteSite: remoteSite,
-              item: item
-            });
-          }
-        }
+    return repository.getTwins(slug, function(pages) {
+      var bin, flags, i, legend, twin, twins, _i, _len;
+      for (_i = 0, _len = pages.length; _i < _len; _i++) {
+        twin = pages[_i];
+        bin = twin.version > viewing ? bins.newer : twin.version < viewing ? bins.older : bins.same;
+        bin.push(twin);
       }
-    }
-    twins = [];
-    for (legend in bins) {
-      bin = bins[legend];
-      if (!bin.length) {
-        continue;
-      }
-      bin.sort(function(a, b) {
-        return a.item.date < b.item.date;
-      });
-      flags = (function() {
-        var _j, _len1, _ref4, _results;
-        _results = [];
-        for (i = _j = 0, _len1 = bin.length; _j < _len1; i = ++_j) {
-          _ref4 = bin[i], remoteSite = _ref4.remoteSite, item = _ref4.item;
-          if (i >= 8) {
-            break;
-          }
-          _results.push("<img class=\"remote\"\nsrc=\"http://" + remoteSite + "/favicon.png\"\ndata-slug=\"" + slug + "\"\ndata-site=\"" + remoteSite + "\"\ntitle=\"" + remoteSite + "\">");
+      twins = [];
+      for (legend in bins) {
+        bin = bins[legend];
+        if (!bin.length) {
+          continue;
         }
-        return _results;
-      })();
-      twins.push("" + (flags.join('&nbsp;')) + " " + legend);
-    }
-    if (twins) {
-      return $page.find('.twins').html("<p>" + (twins.join(", ")) + "</p>");
-    }
+        bin.sort(function(a, b) {
+          return a.version < b.version;
+        });
+        flags = (function() {
+          var _j, _len1, _results;
+          _results = [];
+          for (i = _j = 0, _len1 = bin.length; _j < _len1; i = ++_j) {
+            page = bin[i];
+            if (i >= 8) {
+              break;
+            }
+            _results.push("<img class=\"remote\"\nsrc=\"" + page.favicon + "\"\ndata-slug=\"" + slug + "\"\ndata-version=\"" + page.version + "\">");
+          }
+          return _results;
+        })();
+        twins.push("" + (flags.join('&nbsp;')) + " " + legend);
+      }
+      if (twins) {
+        return $page.find('.twins').html("<p>" + (twins.join(", ")) + "</p>");
+      }
+    });
   }
 };
 
@@ -1585,7 +1579,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":13,"./neighborhood.coffee":17,"./pageHandler.coffee":7,"./plugin.coffee":8,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],16:[function(require,module,exports){
+},{"./addToJournal.coffee":13,"./neighborhood.coffee":17,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],16:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2957,6 +2951,8 @@ pageToContentObject = function(json) {
 
 interfaces = [];
 
+repo.favicon = '';
+
 pageStoreOpts = {
   dbVersion: 1,
   storeName: "page",
@@ -2996,10 +2992,15 @@ statusOpts = {
     var onError, onSuccess;
     onSuccess = function(item) {
       if (item !== void 0) {
-
+        repo.favicon = item.dataUrl;
+        return console.log(item);
       } else {
         return plugin.get('favicon', function(favicon) {
-          return favicon.create(status);
+          favicon.create(status);
+          return status.get(1, function(item) {
+            console.log(item);
+            return repo.favicon = item.dataUrl;
+          });
         });
       }
     };
@@ -3010,6 +3011,34 @@ statusOpts = {
     };
     return status.get(1, onSuccess, onError);
   }
+};
+
+repo.update = function(json) {
+  var repository;
+  return repository = new IDBStore(pageStoreOpts, function() {
+    var page;
+    console.log(json.page);
+    console.log(repository);
+    repository.put({
+      name: json.page
+    });
+    return page = new IDBStore({
+      dbVersion: 1,
+      storeName: "page/" + json.page,
+      keyPath: 'version',
+      autoIncrement: false,
+      onStoreReady: function() {
+        var version, _i, _len, _ref;
+        json.version = json.journal[json.journal.length - 1].date;
+        _ref = json.journal;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          version = _ref[_i];
+          page.remove(version.date);
+        }
+        return page.put(json);
+      }
+    });
+  });
 };
 
 repo.check = function(pageInformation, whenGotten, whenNotGotten) {
@@ -3036,77 +3065,65 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
         order: 'DESC',
         onEnd: function() {
           var exclusions, getClosure, interest, name, template;
-          if (pageDisplayed === false) {
-            console.log("page not found in Repository");
-            name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
-            interest = new Interest(name);
-            template = {};
-            exclusions = [];
-            getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-              var json, recursiveClosure;
-              if (data != null) {
-                console.log(data);
+          console.log("page not found in Repository");
+          name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
+          interest = new Interest(name);
+          template = {};
+          exclusions = [];
+          getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+            var json, recursiveClosure;
+            if (data != null) {
+              console.log(data);
+              if (pageDisplayed === false) {
                 whenGotten(JSON.parse(data), 'local');
-                json = JSON.parse(data);
-                json.version = json.journal[json.journal.length - 1].date;
-                page.put(json);
-                recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-                  var entry, string, _i, _len, _ref;
-                  if (data != null) {
-                    json = JSON.parse(data);
-                    page.put(json);
-                    console.log('got another version', json);
-                    _ref = json.excludes;
-                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                      entry = _ref[_i];
-                      string = entry + '';
-                      exclusions.push(DataUtils.toNumbersFromString(string));
-                    }
-                    template.exclude = new Exclude(exclusions);
-                    console.log(exclusions);
-                    interest.exclude = template.exclude;
-                    return interfaces[0].expressInterest(name, recursiveClosure, template);
+              }
+              json = JSON.parse(data);
+              json.version = json.journal[json.journal.length - 1].date;
+              repo.update(json);
+              recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+                var entry, string, _i, _len, _ref;
+                if (data != null) {
+                  json = JSON.parse(data);
+                  repo.update(json);
+                  console.log('got another version', json);
+                  _ref = json.excludes;
+                  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                    entry = _ref[_i];
+                    string = entry + '';
+                    exclusions.push(DataUtils.toNumbersFromString(string));
                   }
-                });
-                return interfaces[0].expressInterest(name, recursiveClosure);
-              } else {
+                  template.exclude = new Exclude(exclusions);
+                  console.log(exclusions);
+                  interest.exclude = template.exclude;
+                  return interfaces[0].expressInterest(name, recursiveClosure, template);
+                }
+              });
+              return interfaces[0].expressInterest(name, recursiveClosure);
+            } else {
+              if (pageDisplayed === false) {
                 return whenNotGotten();
               }
-            });
-            return interfaces[0].expressInterest(name, getClosure);
-          }
+            }
+          });
+          return interfaces[0].expressInterest(name, getClosure);
         }
       });
     }
   });
 };
 
-repo.update = function(json) {
-  var repository;
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var page;
-    console.log(json.page);
-    console.log(repository);
-    repository.put({
-      name: json.page
-    });
-    return page = new IDBStore({
-      dbVersion: 1,
-      storeName: "page/" + json.page,
-      keyPath: 'version',
-      autoIncrement: false,
-      onStoreReady: function() {
-        var version, _i, _len, _ref;
-        json.version = json.journal[json.journal.length - 1].date;
-        _ref = json.journal;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          version = _ref[_i];
-          page.remove(version.date);
-          console.log('removced 0', version.date);
-        }
-        return page.put(json);
-      }
-    });
+repo.getTwins = function(slug, callback) {
+  var twins;
+  return twins = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + slug + ".json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      console.log(twins);
+      twins.getAll(callback);
+      return console.log('got here');
+    }
   });
 };
 

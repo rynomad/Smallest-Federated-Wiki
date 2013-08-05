@@ -89,6 +89,7 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
   addToJournal pageElement.find('.journal'), action
   page.page = wiki.asSlug(page.title) + '.json'
   page.excludes = []
+  page.favicon = repository.favicon
   for version in page.journal by -1
     if version.type != 'fork'
       page.excludes.push(version.date)

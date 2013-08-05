@@ -41,8 +41,9 @@ wiki.getDataNodes = (vis) ->
     who = $('.chart,.data,.calculator').toArray().reverse()
     $(who)
 
-wiki.createPage = (name, loc) ->
+wiki.createPage = (name, loc, version) ->
   site = loc if loc and loc isnt 'view'
+  console.log version
   $page = $ """
     <div class="page" id="#{name}">
       <div class="twins"> <p> </p> </div>
@@ -51,7 +52,9 @@ wiki.createPage = (name, loc) ->
       </div>
     </div>
   """
+  $page.data('version', version) if version
   $page.find('.page').attr('data-site', site) if site
+  console.log $page.find('.page').data('version')
   $page
 
 wiki.getItem = (element) ->

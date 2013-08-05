@@ -145,10 +145,11 @@ $ ->
     else
       textarea.focus()
 
-  doInternalLink = wiki.doInternalLink = (name, page, site=null) ->
+  doInternalLink = wiki.doInternalLink = (name, page, site=null, version) ->
     name = wiki.asSlug(name)
     $(page).nextAll().remove() if page?
-    wiki.createPage(name,site)
+    console.log version
+    wiki.createPage(name,site,version)
       .appendTo($('.main'))
       .each refresh
     active.set($('.page').last())
@@ -191,7 +192,7 @@ $ ->
   finishClick = (e, name) ->
     e.preventDefault()
     page = $(e.target).parents('.page') unless e.shiftKey
-    doInternalLink name, page, $(e.target).data('site')
+    doInternalLink name, page, $(e.target).data('site'), $(e.target).data('version')
     return false
 
   $('.main')
@@ -211,7 +212,7 @@ $ ->
 
     .delegate 'img.remote', 'click', (e) ->
       name = $(e.target).data('slug')
-      pageHandler.context = [$(e.target).data('site')]
+      pageHandler.context = [$(e.target).data('version')]
       finishClick e, name
 
     .delegate '.revision', 'dblclick', (e) ->

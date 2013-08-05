@@ -75,15 +75,20 @@ wiki.getDataNodes = function(vis) {
   }
 };
 
-wiki.createPage = function(name, loc) {
+wiki.createPage = function(name, loc, version) {
   var $page, site;
   if (loc && loc !== 'view') {
     site = loc;
   }
+  console.log(version);
   $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
+  if (version) {
+    $page.data('version', version);
+  }
   if (site) {
     $page.find('.page').attr('data-site', site);
   }
+  console.log($page.find('.page').data('version'));
   return $page;
 };
 
@@ -287,7 +292,7 @@ $(function() {
       return textarea.focus();
     }
   };
-  doInternalLink = wiki.doInternalLink = function(name, page, site) {
+  doInternalLink = wiki.doInternalLink = function(name, page, site, version) {
     if (site == null) {
       site = null;
     }
@@ -295,7 +300,8 @@ $(function() {
     if (page != null) {
       $(page).nextAll().remove();
     }
-    wiki.createPage(name, site).appendTo($('.main')).each(refresh);
+    console.log(version);
+    wiki.createPage(name, site, version).appendTo($('.main')).each(refresh);
     return active.set($('.page').last());
   };
   LEFTARROW = 37;
@@ -349,7 +355,7 @@ $(function() {
     if (!e.shiftKey) {
       page = $(e.target).parents('.page');
     }
-    doInternalLink(name, page, $(e.target).data('site'));
+    doInternalLink(name, page, $(e.target).data('site'), $(e.target).data('version'));
     return false;
   };
   $('.main').delegate('.show-page-source', 'click', function(e) {
@@ -370,7 +376,7 @@ $(function() {
   }).delegate('img.remote', 'click', function(e) {
     var name;
     name = $(e.target).data('slug');
-    pageHandler.context = [$(e.target).data('site')];
+    pageHandler.context = [$(e.target).data('version')];
     return finishClick(e, name);
   }).delegate('.revision', 'dblclick', function(e) {
     var $page, action, json, page, rev;
@@ -1021,9 +1027,9 @@ pageFromLocalStorage = function(slug) {
 };
 
 recursiveGet = function(_arg) {
-  var localContext, pageInformation, rev, site, slug, url, whenGotten, whenNotGotten;
+  var localContext, pageInformation, rev, site, slug, url, version, whenGotten, whenNotGotten;
   pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
-  slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site;
+  slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site, version = pageInformation.version;
   pageInformation.slug = pageInformation.slug;
   if (site) {
     localContext = [];
@@ -1494,8 +1500,10 @@ module.exports = refresh = wiki.refresh = function() {
   pageInformation = {
     slug: slug,
     rev: rev,
-    site: $page.data('site')
+    site: $page.data('site'),
+    version: $page.data('version')
   };
+  console.log($page.data('version'));
   createGhostPage = function() {
     var heading, hits, info, page, result, site, title, _ref1, _ref2;
     title = $("a[href=\"/" + slug + ".html\"]:last").text() || slug;
@@ -2991,7 +2999,7 @@ statusOpts = {
   onStoreReady: function() {
     var onError, onSuccess;
     onSuccess = function(item) {
-      if (item !== null) {
+      if (item != null) {
         repo.favicon = item.dataUrl;
         return console.log(item);
       } else {
@@ -3037,9 +3045,11 @@ repo.update = function(json) {
   });
 };
 
+repo.getTwin = function(slug, version, whenGotten) {};
+
 repo.check = function(pageInformation, whenGotten, whenNotGotten) {
   var page;
-  console.log(pageInformation.slug + '.json');
+  console.log(pageInformation);
   return page = new IDBStore({
     dbVersion: 1,
     storeName: "page/" + pageInformation.slug + ".json",
@@ -3057,53 +3067,60 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
           return pageDisplayed = true;
         }
       };
-      return page.iterate(onItem, {
-        order: 'DESC',
-        onEnd: function() {
-          var exclusions, getClosure, interest, name, template;
-          console.log("page not found in Repository");
-          name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
-          interest = new Interest(name);
-          template = {};
-          exclusions = [];
-          getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-            var json, recursiveClosure;
-            if (data != null) {
-              console.log(data);
-              if (pageDisplayed === false) {
-                whenGotten(JSON.parse(data), 'local');
-              }
-              json = JSON.parse(data);
-              json.version = json.journal[json.journal.length - 1].date;
-              repo.update(json);
-              recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-                var entry, string, _i, _len, _ref;
-                if (data != null) {
-                  json = JSON.parse(data);
-                  repo.update(json);
-                  console.log('got another version', json);
-                  _ref = json.excludes;
-                  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                    entry = _ref[_i];
-                    string = entry + '';
-                    exclusions.push(DataUtils.toNumbersFromString(string));
-                  }
-                  template.exclude = new Exclude(exclusions);
-                  console.log(exclusions);
-                  interest.exclude = template.exclude;
-                  return interfaces[0].expressInterest(name, recursiveClosure, template);
+      if (pageInformation.version != null) {
+        console.log('requesting specific version');
+        return page.get(pageInformation.version, function(page) {
+          return whenGotten(page, 'local');
+        });
+      } else {
+        return page.iterate(onItem, {
+          order: 'DESC',
+          onEnd: function() {
+            var exclusions, getClosure, interest, name, template;
+            console.log("page not found in Repository");
+            name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
+            interest = new Interest(name);
+            template = {};
+            exclusions = [];
+            getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+              var json, recursiveClosure;
+              if (data != null) {
+                console.log(data);
+                if (pageDisplayed === false) {
+                  whenGotten(JSON.parse(data), 'local');
                 }
-              });
-              return interfaces[0].expressInterest(name, recursiveClosure);
-            } else {
-              if (pageDisplayed === false) {
-                return whenNotGotten();
+                json = JSON.parse(data);
+                json.version = json.journal[json.journal.length - 1].date;
+                repo.update(json);
+                recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+                  var entry, string, _i, _len, _ref;
+                  if (data != null) {
+                    json = JSON.parse(data);
+                    repo.update(json);
+                    console.log('got another version', json);
+                    _ref = json.excludes;
+                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                      entry = _ref[_i];
+                      string = entry + '';
+                      exclusions.push(DataUtils.toNumbersFromString(string));
+                    }
+                    template.exclude = new Exclude(exclusions);
+                    console.log(exclusions);
+                    interest.exclude = template.exclude;
+                    return interfaces[0].expressInterest(name, recursiveClosure, template);
+                  }
+                });
+                return interfaces[0].expressInterest(name, recursiveClosure);
+              } else {
+                if (pageDisplayed === false) {
+                  return whenNotGotten();
+                }
               }
-            }
-          });
-          return interfaces[0].expressInterest(name, getClosure);
-        }
-      });
+            });
+            return interfaces[0].expressInterest(name, getClosure);
+          }
+        });
+      }
     }
   });
 };

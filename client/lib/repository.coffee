@@ -53,7 +53,7 @@ statusOpts= {
   ],
   onStoreReady: () ->
     onSuccess = (item) ->
-      if item != null
+      if item?
         repo.favicon = item.dataUrl
         console.log item
       else
@@ -85,11 +85,11 @@ repo.update = (json) ->
     })
   )
 
-
+repo.getTwin = (slug, version, whenGotten) ->
 
 #Check to see if a page is in the repository, and perform the appropriate callback
 repo.check = (pageInformation, whenGotten, whenNotGotten) ->
-  console.log pageInformation.slug + '.json'
+  console.log pageInformation
   page = new IDBStore({
     dbVersion: 1,
     storeName: "page/#{pageInformation.slug}.json",
@@ -104,41 +104,47 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
           pageDisplayed = true
         #else
         # pushToTwins
-      page.iterate(onItem, {
-        order: 'DESC',
-        onEnd: () ->
-          console.log "page not found in Repository"
-          name = new Name( interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json')
-          interest = new Interest(name)
-          template = {}
-          exclusions = []
-          
-          getClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
-            if data?
-              console.log data
-              whenGotten(JSON.parse(data), 'local') if pageDisplayed == false
-              json = JSON.parse(data)
-              json.version = json.journal[json.journal.length - 1].date
-              repo.update json
-              recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
-                if data?
-                  json = JSON.parse(data)
-                  repo.update json
-                  console.log 'got another version', json
-                  for entry in json.excludes
-                    string = entry + ''
-                    exclusions.push DataUtils.toNumbersFromString(string)
-                  template.exclude = new Exclude(exclusions)
-                  console.log exclusions
-                  interest.exclude = template.exclude
-                  interfaces[0].expressInterest(name, recursiveClosure, template)
-              )
-              interfaces[0].expressInterest(name, recursiveClosure)
-            else
-              whenNotGotten() if pageDisplayed == false
-          )
-          interfaces[0].expressInterest(name, getClosure)
-      })
+      if pageInformation.version?
+        console.log 'requesting specific version'
+        page.get(pageInformation.version, (page) ->
+          whenGotten(page, 'local')
+        )
+      else
+        page.iterate(onItem, {
+          order: 'DESC',
+          onEnd: () ->
+            console.log "page not found in Repository"
+            name = new Name( interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json')
+            interest = new Interest(name)
+            template = {}
+            exclusions = []
+            
+            getClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+              if data?
+                console.log data
+                whenGotten(JSON.parse(data), 'local') if pageDisplayed == false
+                json = JSON.parse(data)
+                json.version = json.journal[json.journal.length - 1].date
+                repo.update json
+                recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+                  if data?
+                    json = JSON.parse(data)
+                    repo.update json
+                    console.log 'got another version', json
+                    for entry in json.excludes
+                      string = entry + ''
+                      exclusions.push DataUtils.toNumbersFromString(string)
+                    template.exclude = new Exclude(exclusions)
+                    console.log exclusions
+                    interest.exclude = template.exclude
+                    interfaces[0].expressInterest(name, recursiveClosure, template)
+                )
+                interfaces[0].expressInterest(name, recursiveClosure)
+              else
+                whenNotGotten() if pageDisplayed == false
+            )
+            interfaces[0].expressInterest(name, getClosure)
+        })
   })
 
 repo.getTwins = (slug, callback) ->

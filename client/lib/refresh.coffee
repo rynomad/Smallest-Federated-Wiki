@@ -220,8 +220,9 @@ module.exports = refresh = wiki.refresh = ->
     slug: slug
     rev: rev
     site: $page.data('site')
+    version: $page.data('version')
   }
-
+  console.log $page.data('version')
   createGhostPage = ->
     title = $("""a[href="/#{slug}.html"]:last""").text() or slug
     page =

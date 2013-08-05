@@ -17,7 +17,7 @@ pageFromLocalStorage = (slug)->
     undefined
 
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
-  {slug,rev,site} = pageInformation
+  {slug,rev,site,version} = pageInformation
   pageInformation.slug = pageInformation.slug
 
   if site

@@ -90,9 +90,12 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
   page.page = wiki.asSlug(page.title) + '.json'
   page.excludes = []
   page.favicon = repository.favicon
+  forkReached = false
   for version in page.journal by -1
-    if version.type != 'fork'
+    if version.type != 'fork' && forkReached == false
       page.excludes.push(version.date)
+    else
+      forkReached = true
   console.log page
   repository.update(page)
   

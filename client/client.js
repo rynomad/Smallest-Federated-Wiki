@@ -1113,7 +1113,7 @@ pageHandler.get = function(_arg) {
 pageHandler.context = [];
 
 pushToLocal = function(pageElement, pagePutInfo, action) {
-  var page, version, _i, _ref;
+  var forkReached, page, version, _i, _ref;
   page = pageElement.data("data");
   if (page.journal == null) {
     page.journal = [];
@@ -1135,11 +1135,14 @@ pushToLocal = function(pageElement, pagePutInfo, action) {
   page.page = wiki.asSlug(page.title) + '.json';
   page.excludes = [];
   page.favicon = repository.favicon;
+  forkReached = false;
   _ref = page.journal;
   for (_i = _ref.length - 1; _i >= 0; _i += -1) {
     version = _ref[_i];
-    if (version.type !== 'fork') {
+    if (version.type !== 'fork' && forkReached === false) {
       page.excludes.push(version.date);
+    } else {
+      forkReached = true;
     }
   }
   console.log(page);
@@ -3034,10 +3037,10 @@ repo.update = function(json) {
       onStoreReady: function() {
         var version, _i, _len, _ref;
         json.version = json.journal[json.journal.length - 1].date;
-        _ref = json.journal;
+        _ref = json.excludes;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           version = _ref[_i];
-          page.remove(version.date);
+          page.remove(version);
         }
         return page.put(json);
       }

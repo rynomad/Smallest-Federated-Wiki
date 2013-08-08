@@ -79,8 +79,8 @@ repo.update = (json) ->
       autoIncrement: false,
       onStoreReady: () ->
         json.version = json.journal[json.journal.length - 1].date
-        for version in json.journal
-          page.remove (version.date)
+        for version in json.excludes
+          page.remove (version)
         page.put json
     })
   )

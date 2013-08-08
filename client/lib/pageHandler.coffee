@@ -81,8 +81,8 @@ pageHandler.context = []
 pushToLocal = (pageElement, pagePutInfo, action) ->
   page = pageElement.data("data")
   page.journal = [] unless page.journal?
-  if (site=action['fork'])?
-    page.journal = page.journal.concat({'type':'fork','site':site, 'date': new Date().getTime()})
+  if action['fork']?
+    page.journal = page.journal.concat({'type':'fork', 'date': action.date})
     delete action['fork']
   page.journal = page.journal.concat(action)
   page.story = $(pageElement).find(".item").map(-> $(@).data("item")).get() if action.type != 'create'
@@ -112,7 +112,6 @@ pushToServer = (pageElement, pagePutInfo, action) ->
       wiki.log "pageHandler.put ajax error callback", type, msg
 
 pageHandler.put = (pageElement, action) ->
-
   checkedSite = () ->
     switch site = pageElement.data('site')
       when 'origin', 'local', 'view' then null
@@ -126,7 +125,8 @@ pageHandler.put = (pageElement, action) ->
     site: checkedSite()
     local: pageElement.hasClass('local')
   }
-  forkFrom = pagePutInfo.site
+  forkFrom = pageElement.data('data').favicon
+  console.log forkFrom
   wiki.log 'pageHandler.put', action, pagePutInfo
 
   # detect when fork to local storage
@@ -146,9 +146,9 @@ pageHandler.put = (pageElement, action) ->
   delete action.site if action.site == 'origin'
 
   # update dom when forking
-  if forkFrom
+  if forkFrom != repository.favicon
     # pull remote site closer to us
-    pageElement.find('h1 img').attr('src', '/favicon.png')
+    pageElement.find('h1 img').attr('src', repository.favicon)
     pageElement.find('h1 a').attr('href', '/')
     pageElement.data('site', null)
     pageElement.removeClass('remote')

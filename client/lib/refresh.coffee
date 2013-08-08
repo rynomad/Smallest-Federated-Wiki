@@ -192,7 +192,6 @@ renderPageIntoPageElement = (pageData,$page, siteFound) ->
 
 
 wiki.buildPage = (data,siteFound,$page) ->
-
   if siteFound == 'local'
     $page.addClass('local')
   else if siteFound

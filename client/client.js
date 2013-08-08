@@ -1113,16 +1113,15 @@ pageHandler.get = function(_arg) {
 pageHandler.context = [];
 
 pushToLocal = function(pageElement, pagePutInfo, action) {
-  var page, site, version, _i, _ref;
+  var page, version, _i, _ref;
   page = pageElement.data("data");
   if (page.journal == null) {
     page.journal = [];
   }
-  if ((site = action['fork']) != null) {
+  if (action['fork'] != null) {
     page.journal = page.journal.concat({
       'type': 'fork',
-      'site': site,
-      'date': new Date().getTime()
+      'date': action.date
     });
     delete action['fork'];
   }
@@ -1188,7 +1187,8 @@ pageHandler.put = function(pageElement, action) {
     site: checkedSite(),
     local: pageElement.hasClass('local')
   };
-  forkFrom = pagePutInfo.site;
+  forkFrom = pageElement.data('data').favicon;
+  console.log(forkFrom);
   wiki.log('pageHandler.put', action, pagePutInfo);
   if (wiki.useLocalStorage()) {
     if (pagePutInfo.site != null) {
@@ -1202,8 +1202,8 @@ pageHandler.put = function(pageElement, action) {
   if (action.site === 'origin') {
     delete action.site;
   }
-  if (forkFrom) {
-    pageElement.find('h1 img').attr('src', '/favicon.png');
+  if (forkFrom !== repository.favicon) {
+    pageElement.find('h1 img').attr('src', repository.favicon);
     pageElement.find('h1 a').attr('href', '/');
     pageElement.data('site', null);
     pageElement.removeClass('remote');

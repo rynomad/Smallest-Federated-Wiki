@@ -128,6 +128,8 @@ active = require('./active.coffee');
 
 refresh = require('./refresh.coffee');
 
+require('./interfaces.coffee');
+
 Array.prototype.last = function() {
   return this[this.length - 1];
 };
@@ -480,7 +482,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
+},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
 module.exports = function(page) {
   var p1, p2, synopsis;
   synopsis = page.synopsis;
@@ -996,7 +998,70 @@ state.first = function() {
 };
 
 
-},{"./active.coffee":10,"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
+var interfaces, repo;
+
+repo = require('./repository.coffee');
+
+module.exports = interfaces = {};
+
+interfaces.faces = {};
+
+interfaces.interestHandler = function(prefix, upcallInfo) {
+  var contentStore, slug;
+  console.log(prefix.components.length);
+  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
+  if (contentStore === 'page') {
+    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
+    return repo.getPage(slug, function(pages) {
+      var co, interest, page, sent, signed, _i, _len, _results;
+      interest = upcallInfo.interest;
+      signed = new SignedInfo();
+      sent = false;
+      _results = [];
+      for (_i = 0, _len = pages.length; _i < _len; _i++) {
+        page = pages[_i];
+        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
+          console.log(page.version, interest.excludes);
+          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
+          co.sign();
+          upcallInfo.contentObject = co;
+          interfaces[prefix].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
+          _results.push(sent === true);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    });
+  }
+};
+
+interfaces.registerFace = function(url) {
+  var component, face, hostComponents, hostPrefix, prefix, _i, _len;
+  face = new NDN({
+    host: url
+  });
+  hostPrefix = '/';
+  hostComponents = url.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      hostPrefix = ("/" + component) + hostPrefix;
+    }
+  }
+  prefix = new Name(hostPrefix);
+  face.prefixURI = hostPrefix;
+  interfaces.faces[hostPrefix] = face;
+  return interfaces.faces[hostPrefix].registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler));
+};
+
+interfaces.registerFace('localhost');
+
+interfaces.registerFace('127.0.0.1');
+
+
+},{"./repository.coffee":13}],7:[function(require,module,exports){
 var addToJournal, ndn, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1229,7 +1294,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":13,"./ndn.coffee":15,"./repository.coffee":14,"./revision.coffee":12,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],11:[function(require,module,exports){
+},{"./addToJournal.coffee":15,"./ndn.coffee":16,"./repository.coffee":13,"./revision.coffee":14,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1590,7 +1655,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":13,"./neighborhood.coffee":17,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],16:[function(require,module,exports){
+},{"./addToJournal.coffee":15,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":13,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2839,7 +2904,7 @@ module.exports = refresh = wiki.refresh = function() {
 }).call(this);
 
 })()
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var create;
 
 create = function(revIndex, data) {
@@ -2905,11 +2970,11 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
+},{}],16:[function(require,module,exports){
+
+
+
 },{}],15:[function(require,module,exports){
-
-
-
-},{}],13:[function(require,module,exports){
 var util;
 
 util = require('./util.coffee');
@@ -2937,7 +3002,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":6}],14:[function(require,module,exports){
+},{"./util.coffee":6}],13:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var interfaces, pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3234,7 +3299,7 @@ repo.registerFace('localhost');
 repo.registerFace('127.0.0.1');
 
 
-},{"./plugin.coffee":8,"./revision.coffee":12}],17:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":14}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3385,7 +3450,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":16}],18:[function(require,module,exports){
+},{"./active.coffee":10,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');

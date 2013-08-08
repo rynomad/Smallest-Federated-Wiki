@@ -186,41 +186,7 @@ repo.getPage = (slug, callback) ->
 status = new IDBStore(statusOpts)
 repository = new IDBStore(pageStoreOpts)
 
-repo.interestHandler = (prefix, upcallInfo) ->
-  #logic goes here 
-  console.log prefix.components.length
-  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length])
-  if contentStore == 'page'
-    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1])
-    repo.getPage(slug, (pages) ->
-      interest = upcallInfo.interest
-      signed = new SignedInfo()
-      sent = false
-      for page in pages
-        if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true && sent == false
-          console.log page.version, interest.excludes
-          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
-          co.sign()
-          upcallInfo.contentObject = co
-          interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
-          interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
-          sent == true
-    )
 
-repo.registerFace = (url) ->
-  face = new NDN({host: url})
-  hostPrefix = '/'
-  hostComponents = url.split('.')
-  for component in hostComponents
-    if component != 'www'
-      hostPrefix = "/#{component}" + hostPrefix
-  prefix = new Name(hostPrefix)
-  face.prefixURI = hostPrefix
-  face.registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler))
-  interfaces.push(face)
-  
-repo.registerFace('localhost')
-repo.registerFace('127.0.0.1')
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping
 

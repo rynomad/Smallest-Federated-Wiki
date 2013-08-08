@@ -5,6 +5,7 @@ plugin = require './plugin.coffee'
 state = require './state.coffee'
 active = require './active.coffee'
 refresh = require './refresh.coffee'
+require './interfaces.coffee'
 
 Array::last = ->
   this[@length - 1]

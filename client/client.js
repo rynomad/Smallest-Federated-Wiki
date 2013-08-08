@@ -465,6 +465,26 @@ $(function() {
   }).delegate('.score', 'hover', function(e) {
     return $('.main').trigger('thumb', $(e.target).data('thumb'));
   });
+  $('.footer').delegate('.federate', 'click', function(e) {
+    var face, _i, _len, _ref, _results;
+    e.preventDefault();
+    _ref = interfaces.list;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      face = _ref[_i];
+      _results.push(console.log(face));
+    }
+    return _results;
+  });
+  $('input.federate').on('keypress', function(e) {
+    var federate;
+    if (e.keyCode !== 13) {
+      return;
+    }
+    federate = $(this).val();
+    interfaces.registerFace(federate);
+    return $(this).val("");
+  });
   $(".provider input").click(function() {
     $("footer input:first").val($(this).attr('data-provider'));
     return $("footer form").submit();
@@ -1007,7 +1027,7 @@ window.interfaces = {};
 
 interfaces.faces = {};
 
-interfaces.list = {};
+interfaces.list = [];
 
 interfaces.active = [];
 
@@ -1051,7 +1071,7 @@ interfaces.registerFace = function(url) {
   hostComponents = url.split('.');
   for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
     component = hostComponents[_i];
-    if (component !== 'www') {
+    if (component !== 'www' && component !== 'http://www' && component !== 'http://') {
       hostPrefix = ("/" + component) + hostPrefix;
     }
   }
@@ -1059,14 +1079,10 @@ interfaces.registerFace = function(url) {
   face.prefixURI = hostPrefix;
   face.prefix = prefix;
   interfaces.faces[hostPrefix] = face;
-  face.registerPrefix(prefix, new interfaceClosure(face, interestHandler));
-  interfaces.list[url] = hostPrefix;
+  interfaces.faces[hostPrefix].registerPrefix(prefix, new interfaceClosure(face, interestHandler));
+  interfaces.list.push(hostPrefix);
   return interfaces.active.push(interfaces.faces[hostPrefix]);
 };
-
-interfaces.registerFace('localhost');
-
-interfaces.registerFace('127.0.0.1');
 
 console.log(interfaces);
 

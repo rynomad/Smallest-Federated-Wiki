@@ -280,6 +280,17 @@ $ ->
 
     .delegate '.score', 'hover', (e) ->
       $('.main').trigger 'thumb', $(e.target).data('thumb')
+      
+  $('.footer')
+    .delegate '.federate', 'click', (e) ->
+      e.preventDefault()
+      for face in interfaces.list
+       console.log face
+  $('input.federate').on 'keypress', (e)->
+    return if e.keyCode != 13 # 13 == return
+    federate = $(this).val()
+    interfaces.registerFace(federate)
+    $(this).val("")
 
   $(".provider input").click ->
     $("footer input:first").val $(this).attr('data-provider')

@@ -999,20 +999,26 @@ state.first = function() {
 
 
 },{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
-var interfaces, repo;
+var interestHandler, repo;
 
 repo = require('./repository.coffee');
 
-module.exports = interfaces = {};
+window.interfaces = {};
 
 interfaces.faces = {};
 
-interfaces.interestHandler = function(prefix, upcallInfo) {
+interfaces.list = {};
+
+interfaces.active = [];
+
+interestHandler = function(face, upcallInfo) {
   var contentStore, slug;
-  console.log(prefix.components.length);
-  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
+  console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', face, upcallInfo.interest.name);
+  contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length]);
+  console.log(contentStore);
   if (contentStore === 'page') {
-    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
+    console.log('getting page');
+    slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]);
     return repo.getPage(slug, function(pages) {
       var co, interest, page, sent, signed, _i, _len, _results;
       interest = upcallInfo.interest;
@@ -1026,8 +1032,7 @@ interfaces.interestHandler = function(prefix, upcallInfo) {
           co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
           co.sign();
           upcallInfo.contentObject = co;
-          interfaces[prefix].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-          _results.push(sent === true);
+          _results.push(face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
         } else {
           _results.push(void 0);
         }
@@ -1042,7 +1047,7 @@ interfaces.registerFace = function(url) {
   face = new NDN({
     host: url
   });
-  hostPrefix = '/';
+  hostPrefix = '';
   hostComponents = url.split('.');
   for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
     component = hostComponents[_i];
@@ -1052,13 +1057,18 @@ interfaces.registerFace = function(url) {
   }
   prefix = new Name(hostPrefix);
   face.prefixURI = hostPrefix;
+  face.prefix = prefix;
   interfaces.faces[hostPrefix] = face;
-  return interfaces.faces[hostPrefix].registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler));
+  face.registerPrefix(prefix, new interfaceClosure(face, interestHandler));
+  interfaces.list[url] = hostPrefix;
+  return interfaces.active.push(interfaces.faces[hostPrefix]);
 };
 
 interfaces.registerFace('localhost');
 
 interfaces.registerFace('127.0.0.1');
+
+console.log(interfaces);
 
 
 },{"./repository.coffee":13}],7:[function(require,module,exports){
@@ -3005,7 +3015,7 @@ module.exports = function(journalElement, action) {
 },{"./util.coffee":6}],13:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
-var interfaces, pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
+var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
 
 revision = require('./revision.coffee');
 
@@ -3024,8 +3034,6 @@ pageToContentObject = function(json) {
   content.page = slug;
   return content;
 };
-
-interfaces = [];
 
 repo.favicon = '';
 
@@ -3144,48 +3152,56 @@ repo.check = function(pageInformation, whenGotten, whenNotGotten) {
         return page.iterate(onItem, {
           order: 'DESC',
           onEnd: function() {
-            var exclusions, getClosure, interest, name, template;
+            var exclusions, face, getClosure, interest, name, template, _i, _len, _ref, _results;
             console.log("page not found in Repository");
-            name = new Name(interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json');
-            interest = new Interest(name);
-            template = {};
-            exclusions = [];
-            getClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-              var json, recursiveClosure;
-              if (data != null) {
-                console.log(data);
-                if (pageDisplayed === false) {
-                  whenGotten(JSON.parse(data), 'local');
-                }
-                json = JSON.parse(data);
-                json.version = json.journal[json.journal.length - 1].date;
-                repo.update(json);
-                recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
-                  var entry, string, _i, _len, _ref;
-                  if (data != null) {
-                    json = JSON.parse(data);
-                    repo.update(json);
-                    console.log('got another version', json);
-                    _ref = json.excludes;
-                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                      entry = _ref[_i];
-                      string = entry + '';
-                      exclusions.push(DataUtils.toNumbersFromString(string));
-                    }
-                    template.exclude = new Exclude(exclusions);
-                    console.log(exclusions);
-                    interest.exclude = template.exclude;
-                    return interfaces[0].expressInterest(name, recursiveClosure, template);
+            _ref = interfaces.active;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              face = _ref[_i];
+              console.log(face.prefixURI);
+              name = new Name(face.prefixURI + '/page/' + pageInformation.slug + '.json');
+              interest = new Interest(name);
+              template = {};
+              exclusions = [];
+              getClosure = new ContentClosure(face, name, interest, function(data) {
+                var json, recursiveClosure;
+                if (data != null) {
+                  console.log(data);
+                  if (pageDisplayed === false) {
+                    whenGotten(JSON.parse(data), 'local');
+                    pageDisplayed = true;
                   }
-                });
-                return interfaces[0].expressInterest(name, recursiveClosure);
-              } else {
-                if (pageDisplayed === false) {
-                  return whenNotGotten();
+                  json = JSON.parse(data);
+                  json.version = json.journal[json.journal.length - 1].date;
+                  repo.update(json);
+                  recursiveClosure = new ContentClosure(interfaces[0], name, interest, function(data) {
+                    var entry, string, _j, _len1, _ref1;
+                    if (data != null) {
+                      json = JSON.parse(data);
+                      repo.update(json);
+                      console.log('got another version', json);
+                      _ref1 = json.excludes;
+                      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                        entry = _ref1[_j];
+                        string = entry + '';
+                        exclusions.push(DataUtils.toNumbersFromString(string));
+                      }
+                      template.exclude = new Exclude(exclusions);
+                      console.log(exclusions);
+                      interest.exclude = template.exclude;
+                      return face.expressInterest(name, recursiveClosure, template);
+                    }
+                  });
+                  return face.expressInterest(name, recursiveClosure);
+                } else {
+                  if (pageDisplayed === false) {
+                    return whenNotGotten();
+                  }
                 }
-              }
-            });
-            return interfaces[0].expressInterest(name, getClosure);
+              });
+              _results.push(face.expressInterest(name, getClosure));
+            }
+            return _results;
           }
         });
       }
@@ -3243,60 +3259,6 @@ repo.getPage = function(slug, callback) {
 status = new IDBStore(statusOpts);
 
 repository = new IDBStore(pageStoreOpts);
-
-repo.interestHandler = function(prefix, upcallInfo) {
-  var contentStore, slug;
-  console.log(prefix.components.length);
-  contentStore = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length]);
-  if (contentStore === 'page') {
-    slug = DataUtils.toString(upcallInfo.interest.name.components[prefix.components.length + 1]);
-    return repo.getPage(slug, function(pages) {
-      var co, interest, page, sent, signed, _i, _len, _results;
-      interest = upcallInfo.interest;
-      signed = new SignedInfo();
-      sent = false;
-      _results = [];
-      for (_i = 0, _len = pages.length; _i < _len; _i++) {
-        page = pages[_i];
-        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
-          console.log(page.version, interest.excludes);
-          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
-          co.sign();
-          upcallInfo.contentObject = co;
-          interfaces[0].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-          interfaces[1].transport.send(encodeToBinaryContentObject(upcallInfo.contentObject));
-          _results.push(sent === true);
-        } else {
-          _results.push(void 0);
-        }
-      }
-      return _results;
-    });
-  }
-};
-
-repo.registerFace = function(url) {
-  var component, face, hostComponents, hostPrefix, prefix, _i, _len;
-  face = new NDN({
-    host: url
-  });
-  hostPrefix = '/';
-  hostComponents = url.split('.');
-  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-    component = hostComponents[_i];
-    if (component !== 'www') {
-      hostPrefix = ("/" + component) + hostPrefix;
-    }
-  }
-  prefix = new Name(hostPrefix);
-  face.prefixURI = hostPrefix;
-  face.registerPrefix(prefix, new interfaceClosure(face, prefix, repo.interestHandler));
-  return interfaces.push(face);
-};
-
-repo.registerFace('localhost');
-
-repo.registerFace('127.0.0.1');
 
 
 },{"./plugin.coffee":8,"./revision.coffee":14}],18:[function(require,module,exports){

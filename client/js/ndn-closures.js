@@ -274,18 +274,17 @@ AsyncPutClosure.prototype.upcall = function(kind, upcallInfo) {
 };
 
 
-var interfaceClosure = function PublishClosure(ndn, face, handler) {
+var interfaceClosure = function PublishClosure(ndn, handler) {
      	// Inherit from Closure.
 	Closure.call(this);
 	this.ndn = ndn;
-	this.face = face;
 	this.handler = handler;
 	};
 
 interfaceClosure.prototype.upcall = function(kind, upcallInfo) {
 	if (kind == Closure.UPCALL_FINAL) {
 	}  else if (kind == Closure.UPCALL_INTEREST) {
-	  this.handler(this.face,upcallInfo)
+	  this.handler(this.ndn,upcallInfo)
 	  return Closure.RESULT_INTEREST_CONSUMED;
   }
 	return Closure.RESULT_OK;

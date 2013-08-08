@@ -15,8 +15,6 @@ pageToContentObject = (json) ->
   content.page = slug
   return content
 
-interfaces = []
-
 repo.favicon = ''
 
 
@@ -114,36 +112,40 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
           order: 'DESC',
           onEnd: () ->
             console.log "page not found in Repository"
-            name = new Name( interfaces[0].prefixURI + 'page/' + pageInformation.slug + '.json')
-            interest = new Interest(name)
-            template = {}
-            exclusions = []
+            for face in interfaces.active
+              console.log face.prefixURI
+              name = new Name( face.prefixURI + '/page/' + pageInformation.slug + '.json')
+              interest = new Interest(name)
+              template = {}
+              exclusions = []
             
-            getClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
-              if data?
-                console.log data
-                whenGotten(JSON.parse(data), 'local') if pageDisplayed == false
-                json = JSON.parse(data)
-                json.version = json.journal[json.journal.length - 1].date
-                repo.update json
-                recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
-                  if data?
-                    json = JSON.parse(data)
-                    repo.update json
-                    console.log 'got another version', json
-                    for entry in json.excludes
-                      string = entry + ''
-                      exclusions.push DataUtils.toNumbersFromString(string)
-                    template.exclude = new Exclude(exclusions)
-                    console.log exclusions
-                    interest.exclude = template.exclude
-                    interfaces[0].expressInterest(name, recursiveClosure, template)
-                )
-                interfaces[0].expressInterest(name, recursiveClosure)
-              else
-                whenNotGotten() if pageDisplayed == false
-            )
-            interfaces[0].expressInterest(name, getClosure)
+              getClosure = new ContentClosure(face, name, interest, (data) ->
+                if data?
+                  console.log data
+                  if pageDisplayed == false
+                    whenGotten(JSON.parse(data), 'local') 
+                    pageDisplayed = true
+                  json = JSON.parse(data)
+                  json.version = json.journal[json.journal.length - 1].date
+                  repo.update json
+                  recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+                    if data?
+                      json = JSON.parse(data)
+                      repo.update json
+                      console.log 'got another version', json
+                      for entry in json.excludes
+                        string = entry + ''
+                        exclusions.push DataUtils.toNumbersFromString(string)
+                      template.exclude = new Exclude(exclusions)
+                      console.log exclusions
+                      interest.exclude = template.exclude
+                      face.expressInterest(name, recursiveClosure, template)
+                  )
+                  face.expressInterest(name, recursiveClosure)
+                else
+                  whenNotGotten() if pageDisplayed == false
+              )
+              face.expressInterest(name, getClosure)
         })
   })
 

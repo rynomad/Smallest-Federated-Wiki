@@ -136,16 +136,13 @@ var CSEntry = function CSEntry(name, closure) {
 
 function getEntryForRegisteredPrefix(name) {
 	for (var i = 0; i < NDN.CSTable.length; i++) {
-	  var entry = new Name(NDN.CSTable[i].name)
-	  var interestName = new Name(name)
-	  var k = 0
-	  for (var p = 0; p < entry.components.length; p++) {
-	    if (interestName.components[p-1] == entry.components[p-1]) {
-	      k = k + 1
-	    }
+	  console.log(NDN.CSTable[i], name);
+	  var entry = new Name(NDN.CSTable[i].name);
+	  var interestName = new Interest(entry);
+	  if (interestName.matches_name(new Name(name)) == true){
+	    console.log('Match!!!', NDN.CSTable[i], name);
+	    return NDN.CSTable[i];
 	  }
-		if (p == k)
-			return NDN.CSTable[i];
 	}
 	return null;
 }

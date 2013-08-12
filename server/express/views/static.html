@@ -28,25 +28,9 @@
       {{/pages}}
     </section>
     <footer class="footer">
-      <span>
-        Federate:
-        <input class='federate' name='federate' type='text'>
-      </span>
-      <div id="user-email" class="footer-item"></div>
-      <img src="/images/email_sign_in_blue.png" id="persona-login-btn" alt="Sign in with your Email" />
-      <button id="persona-logout-btn" class="footer-item">Sign out</button>
-      <span class='neighborhood'></span>
-      <a class="federate" href="/federate" class="">federate</a>
     </footer>
   <script>
-var owner =
-  {{#authenticated}}
-    '{{user}}';
-  {{/authenticated}}
-  {{^authenticated}}
-    null;
-  {{/authenticated}}
-wiki.persona(owner);
+
   </script>
   </body>
 </html>

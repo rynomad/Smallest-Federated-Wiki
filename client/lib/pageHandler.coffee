@@ -165,9 +165,7 @@ pageHandler.put = (pageElement, action) ->
         date: action.date
 
   # store as appropriate
-  if wiki.useLocalStorage() or pagePutInfo.site == 'local'
-    pushToLocal(pageElement, pagePutInfo, action)
-    pageElement.addClass("local")
-  else
-    pushToServer(pageElement, pagePutInfo, action)
+  pushToLocal(pageElement, pagePutInfo, action)
+  pageElement.addClass("local")
+
 

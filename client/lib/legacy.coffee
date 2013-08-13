@@ -1,3 +1,4 @@
+require './interfaces.coffee'
 wiki = require './wiki.coffee'
 util = require './util.coffee'
 pageHandler = wiki.pageHandler = require './pageHandler.coffee'
@@ -5,7 +6,7 @@ plugin = require './plugin.coffee'
 state = require './state.coffee'
 active = require './active.coffee'
 refresh = require './refresh.coffee'
-require './interfaces.coffee'
+
 
 Array::last = ->
   this[@length - 1]
@@ -304,4 +305,6 @@ $ ->
     state.first()
     $('.page').each refresh
     active.set($('.page').last())
+    
+interfaces.registerFace(location.host.split(':')[0])
 

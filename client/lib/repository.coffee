@@ -5,6 +5,7 @@ revision = require './revision.coffee'
 plugin = require('./plugin.coffee')
 module.exports = repo = {}
 
+
 pageToContentObject = (json) ->
   slug = wiki.asSlug(json.title)
   name = new Name(slug)
@@ -128,7 +129,7 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
                   json = JSON.parse(data)
                   json.version = json.journal[json.journal.length - 1].date
                   repo.update json
-                  recursiveClosure = new ContentClosure(interfaces[0], name, interest, (data) ->
+                  recursiveClosure = new ContentClosure(face, name, interest, (data) ->
                     if data?
                       json = JSON.parse(data)
                       repo.update json

@@ -395,7 +395,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":8,"./interfaces.coffee":10,"./pageHandler.coffee":5,"./plugin.coffee":6,"./refresh.coffee":9,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":3}],3:[function(require,module,exports){
+},{"./active.coffee":8,"./interfaces.coffee":10,"./pageHandler.coffee":6,"./plugin.coffee":5,"./refresh.coffee":9,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":3}],3:[function(require,module,exports){
 var createSynopsis, wiki,
   __slice = [].slice;
 
@@ -761,7 +761,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":3}],6:[function(require,module,exports){
+},{"./wiki.coffee":3}],5:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -1050,6 +1050,8 @@ interestHandler = function(face, upcallInfo) {
         if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
           console.log(page.version, interest.excludes);
           co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
+          console.log(co);
+          co.signedInfo.freshnessSeconds = 604800;
           co.sign();
           upcallInfo.contentObject = co;
           _results.push(face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
@@ -1087,7 +1089,7 @@ interfaces.registerFace = function(url) {
 interfaces.registerFace(location.host.split(':')[0]);
 
 
-},{"./repository.coffee":13}],5:[function(require,module,exports){
+},{"./repository.coffee":13}],6:[function(require,module,exports){
 var addToJournal, ndn, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
 
 _ = require('underscore');
@@ -1677,7 +1679,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":15,"./neighborhood.coffee":18,"./pageHandler.coffee":5,"./plugin.coffee":6,"./repository.coffee":13,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":3,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":15,"./neighborhood.coffee":18,"./pageHandler.coffee":6,"./plugin.coffee":5,"./repository.coffee":13,"./state.coffee":7,"./util.coffee":4,"./wiki.coffee":3,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3273,7 +3275,7 @@ status = new IDBStore(statusOpts);
 repository = new IDBStore(pageStoreOpts);
 
 
-},{"./plugin.coffee":6,"./revision.coffee":14}],18:[function(require,module,exports){
+},{"./plugin.coffee":5,"./revision.coffee":14}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

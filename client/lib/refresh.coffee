@@ -53,6 +53,8 @@ initDragging = ($page) ->
 initAddButton = ($page) ->
   $page.find(".add-factory").live "click", (evt) ->
     return if $page.hasClass 'ghost'
+    if $page.data('data').journal[$page.data('data').journal.length - 2]?
+      return if ($page.data('data').version - ($page.data('data').journal[$page.data('data').journal.length - 2].date)) <= 500
     evt.preventDefault()
     createFactory($page)
 

@@ -44,4 +44,5 @@ interfaces.registerFace = (url) ->
   interfaces.list.push(hostPrefix)
   interfaces.active.push(interfaces.faces[hostPrefix])
 
-interfaces.registerFace(location.host.split(':')[0])
+
+

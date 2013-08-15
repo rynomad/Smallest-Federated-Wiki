@@ -87,7 +87,7 @@ WebSocketTransport.prototype.connect = function(ndn, onopenCallback) {
  * Send the Uint8Array data.
  */
 WebSocketTransport.prototype.send = function(data) {
-	if (this.ws != null) {
+	if (this.ws.readyState == 1) {
         // If we directly use data.buffer to feed ws.send(), 
         // WebSocket may end up sending a packet with 10000 bytes of data.
         // That is, WebSocket will flush the entire buffer

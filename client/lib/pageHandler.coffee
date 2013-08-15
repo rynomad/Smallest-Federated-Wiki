@@ -6,7 +6,6 @@ state = require './state.coffee'
 revision = require './revision.coffee'
 addToJournal = require './addToJournal.coffee'
 repository = require './repository.coffee'
-ndn = require './ndn.coffee'
 
 module.exports = pageHandler = {}
 

@@ -504,34 +504,7 @@ $(function() {
 interfaces.registerFace(location.host.split(':')[0]);
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
-
-
-},{}],5:[function(require,module,exports){
+},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":9,"./refresh.coffee":11,"./state.coffee":8,"./util.coffee":6,"./wiki.coffee":2}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -578,6 +551,33 @@ module.exports = function(owner) {
     e.preventDefault();
     return navigator.id.logout();
   });
+};
+
+
+},{}],4:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
 };
 
 
@@ -635,7 +635,122 @@ active.set = function(el) {
 };
 
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
+var active, state, wiki,
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+module.exports = state = {};
+
+state.pagesInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return el.id;
+  }));
+};
+
+state.urlPages = function() {
+  var i;
+  return ((function() {
+    var _i, _len, _ref, _results;
+    _ref = $(location).attr('pathname').split('/');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+      i = _ref[_i];
+      _results.push(i);
+    }
+    return _results;
+  })()).slice(1);
+};
+
+state.locsInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return $(el).data('site') || 'view';
+  }));
+};
+
+state.urlLocs = function() {
+  var j, _i, _len, _ref, _results;
+  _ref = $(location).attr('pathname').split('/').slice(1);
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+    j = _ref[_i];
+    _results.push(j);
+  }
+  return _results;
+};
+
+state.setUrl = function() {
+  var idx, locs, page, pages, url, _ref;
+  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+  if (history && history.pushState) {
+    locs = state.locsInDom();
+    pages = state.pagesInDom();
+    url = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
+        page = pages[idx];
+        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
+      }
+      return _results;
+    })()).join('');
+    if (url !== $(location).attr('pathname')) {
+      return history.pushState(null, null, url);
+    }
+  }
+};
+
+state.show = function(e) {
+  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
+  oldPages = state.pagesInDom();
+  newPages = state.urlPages();
+  oldLocs = state.locsInDom();
+  newLocs = state.urlLocs();
+  if (!location.pathname || location.pathname === '/') {
+    return;
+  }
+  previous = $('.page').eq(0);
+  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
+    name = newPages[idx];
+    if (name !== oldPages[idx]) {
+      old = $('.page').eq(idx);
+      if (old) {
+        old.remove();
+      }
+      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
+    }
+    previous = $('.page').eq(idx);
+  }
+  previous.nextAll().remove();
+  active.set($('.page').last());
+  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+};
+
+state.first = function() {
+  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
+  state.setUrl();
+  firstUrlPages = state.urlPages();
+  firstUrlLocs = state.urlLocs();
+  oldPages = state.pagesInDom();
+  _results = [];
+  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
+    urlPage = firstUrlPages[idx];
+    if (__indexOf.call(oldPages, urlPage) < 0) {
+      if (urlPage !== '') {
+        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
+      } else {
+        _results.push(void 0);
+      }
+    }
+  }
+  return _results;
+};
+
+
+},{"./active.coffee":10,"./wiki.coffee":2}],6:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -763,7 +878,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{"./wiki.coffee":2}],9:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -905,122 +1020,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
-var active, state, wiki,
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-module.exports = state = {};
-
-state.pagesInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return el.id;
-  }));
-};
-
-state.urlPages = function() {
-  var i;
-  return ((function() {
-    var _i, _len, _ref, _results;
-    _ref = $(location).attr('pathname').split('/');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-      i = _ref[_i];
-      _results.push(i);
-    }
-    return _results;
-  })()).slice(1);
-};
-
-state.locsInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return $(el).data('site') || 'view';
-  }));
-};
-
-state.urlLocs = function() {
-  var j, _i, _len, _ref, _results;
-  _ref = $(location).attr('pathname').split('/').slice(1);
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-    j = _ref[_i];
-    _results.push(j);
-  }
-  return _results;
-};
-
-state.setUrl = function() {
-  var idx, locs, page, pages, url, _ref;
-  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-  if (history && history.pushState) {
-    locs = state.locsInDom();
-    pages = state.pagesInDom();
-    url = ((function() {
-      var _i, _len, _results;
-      _results = [];
-      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
-        page = pages[idx];
-        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
-      }
-      return _results;
-    })()).join('');
-    if (url !== $(location).attr('pathname')) {
-      return history.pushState(null, null, url);
-    }
-  }
-};
-
-state.show = function(e) {
-  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
-  oldPages = state.pagesInDom();
-  newPages = state.urlPages();
-  oldLocs = state.locsInDom();
-  newLocs = state.urlLocs();
-  if (!location.pathname || location.pathname === '/') {
-    return;
-  }
-  previous = $('.page').eq(0);
-  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
-    name = newPages[idx];
-    if (name !== oldPages[idx]) {
-      old = $('.page').eq(idx);
-      if (old) {
-        old.remove();
-      }
-      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
-    }
-    previous = $('.page').eq(idx);
-  }
-  previous.nextAll().remove();
-  active.set($('.page').last());
-  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-};
-
-state.first = function() {
-  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
-  state.setUrl();
-  firstUrlPages = state.urlPages();
-  firstUrlLocs = state.urlLocs();
-  oldPages = state.pagesInDom();
-  _results = [];
-  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
-    urlPage = firstUrlPages[idx];
-    if (__indexOf.call(oldPages, urlPage) < 0) {
-      if (urlPage !== '') {
-        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
-      } else {
-        _results.push(void 0);
-      }
-    }
-  }
-  return _results;
-};
-
-
-},{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],12:[function(require,module,exports){
 var interestHandler, repo;
 
 repo = require('./repository.coffee');
@@ -1039,30 +1039,35 @@ interestHandler = function(face, upcallInfo) {
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length]);
   console.log(contentStore);
   if (contentStore === 'page') {
-    console.log('getting page');
-    slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]);
-    return repo.getPage(slug, function(pages) {
-      var co, interest, page, sent, signed, _i, _len, _results;
-      interest = upcallInfo.interest;
-      signed = new SignedInfo();
-      sent = false;
-      _results = [];
-      for (_i = 0, _len = pages.length; _i < _len; _i++) {
-        page = pages[_i];
-        if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
-          console.log(page.version, interest.excludes);
-          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
-          console.log(co);
-          co.signedInfo.freshnessSeconds = 604800;
-          co.sign();
-          upcallInfo.contentObject = co;
-          _results.push(face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
-        } else {
-          _results.push(void 0);
+    if (DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) === 'update') {
+      slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2]);
+      return console.log(face.prefixURI);
+    } else {
+      console.log('getting page');
+      slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]);
+      return repo.getPage(slug, function(pages) {
+        var co, interest, page, sent, signed, _i, _len, _results;
+        interest = upcallInfo.interest;
+        signed = new SignedInfo();
+        sent = false;
+        _results = [];
+        for (_i = 0, _len = pages.length; _i < _len; _i++) {
+          page = pages[_i];
+          if (interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) === true && sent === false) {
+            console.log(page.version, interest.excludes);
+            co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature());
+            console.log(co);
+            co.signedInfo.freshnessSeconds = 604800;
+            co.sign();
+            upcallInfo.contentObject = co;
+            _results.push(face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject)));
+          } else {
+            _results.push(void 0);
+          }
         }
-      }
-      return _results;
-    });
+        return _results;
+      });
+    }
   }
 };
 
@@ -1089,236 +1094,350 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":13}],7:[function(require,module,exports){
-var addToJournal, ndn, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
+},{"./repository.coffee":13}],14:[function(require,module,exports){
+var create;
 
-_ = require('underscore');
+create = function(revIndex, data) {
+  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
+  journal = data.journal;
+  revTitle = data.title;
+  revStory = [];
+  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
+  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
+    journalEntry = revJournal[_i];
+    revStoryIds = revStory.map(function(storyItem) {
+      return storyItem.id;
+    });
+    switch (journalEntry.type) {
+      case 'create':
+        if (journalEntry.item.title != null) {
+          revTitle = journalEntry.item.title;
+          revStory = journalEntry.item.story || [];
+        }
+        break;
+      case 'add':
+        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
+          revStory.splice(afterIndex + 1, 0, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'edit':
+        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(editIndex, 1, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'move':
+        items = {};
+        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
+          storyItem = revStory[_j];
+          items[storyItem.id] = storyItem;
+        }
+        revStory = [];
+        _ref = journalEntry.order;
+        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
+          itemId = _ref[_k];
+          if (items[itemId] != null) {
+            revStory.push(items[itemId]);
+          }
+        }
+        break;
+      case 'remove':
+        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(removeIndex, 1);
+        }
+    }
+  }
+  return {
+    story: revStory,
+    journal: revJournal,
+    title: revTitle
+  };
+};
 
-wiki = require('./wiki.coffee');
+exports.create = create;
 
-util = require('./util.coffee');
 
-state = require('./state.coffee');
+},{}],13:[function(require,module,exports){
+/* Page Mirroring with IndexedDB*/
+
+var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
 
 revision = require('./revision.coffee');
 
-addToJournal = require('./addToJournal.coffee');
+plugin = require('./plugin.coffee');
 
-repository = require('./repository.coffee');
+module.exports = repo = {};
 
-ndn = require('./ndn.coffee');
+pageToContentObject = function(json) {
+  var content, name, signed, slug;
+  slug = wiki.asSlug(json.title);
+  name = new Name(slug);
+  signed = new SignedInfo();
+  content = {};
+  content.object = new ContentObject(name, signed, json, new Signature());
+  content.object.sign();
+  content.page = slug;
+  return content;
+};
 
-module.exports = pageHandler = {};
+repo.favicon = '';
 
-pageFromLocalStorage = function(slug) {
-  var json;
-  if (json = localStorage[slug]) {
-    return JSON.parse(json);
-  } else {
-    return void 0;
+pageStoreOpts = {
+  dbVersion: 1,
+  storeName: "page",
+  autoIncrement: true,
+  onStoreReady: function() {
+    /*
+    repo.ready = true
+    $.get('/system/sitemap.json', (sitemap) -> 
+        status.get(1, (favicon) ->
+          for entry in sitemap
+            $.get("/#{entry.slug}.json", (json) ->
+              json.favicon = favicon.dataUrl
+              content = json
+              content.page = wiki.asSlug(json.title) + '.json'
+              repo.update(json)
+            )
+        )
+    )
+    */
+
   }
 };
 
-recursiveGet = function(_arg) {
-  var localContext, pageInformation, rev, site, slug, url, version, whenGotten, whenNotGotten;
-  pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
-  slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site, version = pageInformation.version;
-  pageInformation.slug = pageInformation.slug;
-  if (site) {
-    localContext = [];
-  } else {
-    site = localContext.shift();
-  }
-  if (site === 'view') {
-    site = null;
-  }
-  if (site != null) {
-    if (site === 'local') {
-      repository.check(pageInformation, whenGotten, whenNotGotten);
-    } else {
-      if (site === 'origin') {
-        url = "/" + slug + ".json";
-      } else {
-        url = "http://" + site + "/" + slug + ".json";
-      }
+statusOpts = {
+  dbVersion: 1,
+  storeName: "status",
+  keypath: 'id',
+  autoincrement: true,
+  indexes: [
+    {
+      name: 'type',
+      unique: false,
+      multiEntry: false
     }
-  } else {
-    url = "/" + slug + ".json";
+  ],
+  onStoreReady: function() {
+    var onError, onSuccess;
+    onSuccess = function(item) {
+      if (item != null) {
+        repo.favicon = item.dataUrl;
+        return console.log(item);
+      } else {
+        return plugin.get('favicon', function(favicon) {
+          return favicon.create(status, repo);
+        });
+      }
+    };
+    onError = function() {
+      return plugin.get('favicon', function(favicon) {
+        return favicon.create(status, repo);
+      });
+    };
+    return status.get(1, onSuccess, onError);
   }
-  return $.ajax({
-    type: 'GET',
-    dataType: 'json',
-    url: url + ("?random=" + (util.randomBytes(4))),
-    success: function(page) {
-      if (rev) {
-        page = revision.create(rev, page);
+};
+
+repo.update = function(json) {
+  var repository;
+  return repository = new IDBStore(pageStoreOpts, function() {
+    var page;
+    console.log(json.page);
+    console.log(repository);
+    repository.put({
+      name: json.page
+    });
+    return page = new IDBStore({
+      dbVersion: 1,
+      storeName: "page/" + json.page,
+      keyPath: 'version',
+      autoIncrement: false,
+      onStoreReady: function() {
+        var version, _i, _len, _ref;
+        json.version = json.journal[json.journal.length - 1].date;
+        _ref = json.excludes;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          version = _ref[_i];
+          page.remove(version);
+        }
+        return page.put(json);
       }
-      return whenGotten(page, site);
-    },
-    error: function(xhr, type, msg) {
-      var report;
-      if ((xhr.status !== 404) && (xhr.status !== 0)) {
-        wiki.log('pageHandler.get error', xhr, xhr.status, type, msg);
-        report = {
-          'title': "" + xhr.status + " " + msg,
-          'story': [
-            {
-              'type': 'paragraph',
-              'id': '928739187243',
-              'text': "<pre>" + xhr.responseText
-            }
-          ]
-        };
-        return whenGotten(report, 'local');
-      }
-      if (localContext.length > 0) {
-        return recursiveGet({
-          pageInformation: pageInformation,
-          whenGotten: whenGotten,
-          whenNotGotten: whenNotGotten,
-          localContext: localContext
+    });
+  });
+};
+
+repo.getTwin = function(slug, version, whenGotten) {};
+
+repo.check = function(pageInformation, whenGotten, whenNotGotten) {
+  var page;
+  console.log(pageInformation);
+  return page = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + pageInformation.slug + ".json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      var onItem, pageDisplayed;
+      pageDisplayed = false;
+      onItem = function(page, cursor, transaction) {
+        if (pageDisplayed === false) {
+          if (pageInformation.rev) {
+            page = revision.create(pageInformation.rev, page);
+          }
+          whenGotten(page, 'local');
+          return pageDisplayed = true;
+        }
+      };
+      if (pageInformation.version != null) {
+        console.log('requesting specific version');
+        return page.get(pageInformation.version, function(page) {
+          return whenGotten(page, 'local');
         });
       } else {
-        return whenNotGotten();
+        return page.iterate(onItem, {
+          order: 'DESC',
+          onEnd: function() {
+            var exclusions, face, getClosure, interest, name, template, _i, _len, _ref, _results;
+            console.log("page not found in Repository");
+            _ref = interfaces.active;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              face = _ref[_i];
+              console.log(face.prefixURI);
+              name = new Name(face.prefixURI + '/page/' + pageInformation.slug + '.json');
+              interest = new Interest(name);
+              template = {};
+              exclusions = [];
+              getClosure = new ContentClosure(face, name, interest, function(data) {
+                var json, recursiveClosure;
+                if (data != null) {
+                  console.log(data);
+                  if (pageDisplayed === false) {
+                    whenGotten(JSON.parse(data), 'local');
+                    pageDisplayed = true;
+                  }
+                  json = JSON.parse(data);
+                  json.version = json.journal[json.journal.length - 1].date;
+                  repo.update(json);
+                  recursiveClosure = new ContentClosure(face, name, interest, function(data) {
+                    var entry, string, _j, _len1, _ref1;
+                    if (data != null) {
+                      json = JSON.parse(data);
+                      repo.update(json);
+                      console.log('got another version', json);
+                      _ref1 = json.excludes;
+                      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                        entry = _ref1[_j];
+                        string = entry + '';
+                        exclusions.push(DataUtils.toNumbersFromString(string));
+                      }
+                      template.exclude = new Exclude(exclusions);
+                      console.log(exclusions);
+                      interest.exclude = template.exclude;
+                      return face.expressInterest(name, recursiveClosure, template);
+                    }
+                  });
+                  return face.expressInterest(name, recursiveClosure);
+                } else {
+                  if (pageDisplayed === false) {
+                    return whenNotGotten();
+                  }
+                }
+              });
+              _results.push(face.expressInterest(name, getClosure));
+            }
+            return _results;
+          }
+        });
       }
     }
   });
 };
 
-pageHandler.get = function(_arg) {
-  var pageInformation, whenGotten, whenNotGotten;
-  whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, pageInformation = _arg.pageInformation;
-  if (pageInformation.site === void 0) {
-    return repository.check(pageInformation, whenGotten, whenNotGotten);
-  } else {
-    if (!pageHandler.context.length) {
-      pageHandler.context = ['view'];
-    }
-    return recursiveGet({
-      pageInformation: pageInformation,
-      whenGotten: whenGotten,
-      whenNotGotten: whenNotGotten,
-      localContext: _.clone(pageHandler.context)
-    });
-  }
-};
-
-pageHandler.context = [];
-
-pushToLocal = function(pageElement, pagePutInfo, action) {
-  var forkReached, page, version, _i, _ref;
-  page = pageElement.data("data");
-  if (page.journal == null) {
-    page.journal = [];
-  }
-  if (action['fork'] != null) {
-    page.journal = page.journal.concat({
-      'type': 'fork',
-      'date': action.date
-    });
-    delete action['fork'];
-  }
-  page.journal = page.journal.concat(action);
-  if (action.type !== 'create') {
-    page.story = $(pageElement).find(".item").map(function() {
-      return $(this).data("item");
-    }).get();
-  }
-  addToJournal(pageElement.find('.journal'), action);
-  page.page = wiki.asSlug(page.title) + '.json';
-  page.excludes = [];
-  page.favicon = repository.favicon;
-  forkReached = false;
-  _ref = page.journal;
-  for (_i = _ref.length - 1; _i >= 0; _i += -1) {
-    version = _ref[_i];
-    if (version.type !== 'fork' && forkReached === false) {
-      page.excludes.push(version.date);
-    } else {
-      forkReached = true;
-    }
-  }
-  console.log(page);
-  return repository.update(page);
-};
-
-pushToServer = function(pageElement, pagePutInfo, action) {
-  return $.ajax({
-    type: 'PUT',
-    url: "/page/" + pagePutInfo.slug + "/action",
-    data: {
-      'action': JSON.stringify(action)
-    },
-    success: function() {
-      addToJournal(pageElement.find('.journal'), action);
-      if (action.type === 'fork') {
-        localStorage.removeItem(pageElement.attr('id'));
-        return state.setUrl;
-      }
-    },
-    error: function(xhr, type, msg) {
-      return wiki.log("pageHandler.put ajax error callback", type, msg);
+repo.getTwins = function(slug, callback) {
+  var twins;
+  return twins = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + slug + ".json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      console.log(twins);
+      twins.getAll(callback);
+      return console.log('got here');
     }
   });
 };
 
-pageHandler.put = function(pageElement, action) {
-  var checkedSite, forkFrom, pagePutInfo;
-  checkedSite = function() {
-    var site;
-    switch (site = pageElement.data('site')) {
-      case 'origin':
-      case 'local':
-      case 'view':
-        return null;
-      case location.host:
-        return null;
-      default:
-        return site;
-    }
-  };
-  pagePutInfo = {
-    slug: pageElement.attr('id').split('_rev')[0],
-    rev: pageElement.attr('id').split('_rev')[1],
-    site: checkedSite(),
-    local: pageElement.hasClass('local')
-  };
-  forkFrom = pageElement.data('data').favicon;
-  console.log(forkFrom);
-  wiki.log('pageHandler.put', action, pagePutInfo);
-  if (wiki.useLocalStorage()) {
-    if (pagePutInfo.site != null) {
-      wiki.log('remote => local');
-    } else if (!pagePutInfo.local) {
-      wiki.log('origin => local');
-      action.site = forkFrom = location.host;
-    }
-  }
-  action.date = (new Date()).getTime();
-  if (action.site === 'origin') {
-    delete action.site;
-  }
-  if (forkFrom !== repository.favicon) {
-    pageElement.find('h1 img').attr('src', repository.favicon);
-    pageElement.find('h1 a').attr('href', '/');
-    pageElement.data('site', null);
-    pageElement.removeClass('remote');
-    state.setUrl();
-    if (action.type !== 'fork') {
-      action.fork = forkFrom;
-      addToJournal(pageElement.find('.journal'), {
-        type: 'fork',
-        site: forkFrom,
-        date: action.date
+repo.getPage = function(slug, callback) {
+  var page;
+  return page = new IDBStore({
+    dbVersion: 1,
+    storeName: "page/" + slug,
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: function() {
+      var onCheckEnd, onItem, pages;
+      pages = [];
+      onItem = function(content, cursor, transaction) {
+        var found;
+        if (content.page === slug) {
+          console.log(content);
+          found = true;
+          page = content;
+          return pages.push(page);
+        }
+      };
+      onCheckEnd = function() {
+        var done;
+        done = true;
+        return callback(pages);
+      };
+      return page.iterate(onItem, {
+        order: 'DESC',
+        onEnd: onCheckEnd
       });
     }
+  });
+};
+
+status = new IDBStore(statusOpts);
+
+repository = new IDBStore(pageStoreOpts);
+
+
+},{"./plugin.coffee":9,"./revision.coffee":14}],15:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
   }
-  pushToLocal(pageElement, pagePutInfo, action);
-  return pageElement.addClass("local");
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
 };
 
 
-},{"./addToJournal.coffee":15,"./ndn.coffee":16,"./repository.coffee":13,"./revision.coffee":14,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],11:[function(require,module,exports){
+},{"./util.coffee":6}],11:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1613,7 +1732,8 @@ module.exports = refresh = wiki.refresh = function() {
           'text': 'We could not find this page.',
           'title': title
         }
-      ]
+      ],
+      'favicon': repository.favicon
     };
     heading = {
       'type': 'paragraph',
@@ -1684,7 +1804,440 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":15,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":13,"./state.coffee":9,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":15,"./neighborhood.coffee":16,"./pageHandler.coffee":7,"./plugin.coffee":9,"./repository.coffee":13,"./state.coffee":8,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],7:[function(require,module,exports){
+var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, util, wiki, _;
+
+_ = require('underscore');
+
+wiki = require('./wiki.coffee');
+
+util = require('./util.coffee');
+
+state = require('./state.coffee');
+
+revision = require('./revision.coffee');
+
+addToJournal = require('./addToJournal.coffee');
+
+repository = require('./repository.coffee');
+
+module.exports = pageHandler = {};
+
+pageFromLocalStorage = function(slug) {
+  var json;
+  if (json = localStorage[slug]) {
+    return JSON.parse(json);
+  } else {
+    return void 0;
+  }
+};
+
+recursiveGet = function(_arg) {
+  var localContext, pageInformation, rev, site, slug, url, version, whenGotten, whenNotGotten;
+  pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
+  slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site, version = pageInformation.version;
+  pageInformation.slug = pageInformation.slug;
+  if (site) {
+    localContext = [];
+  } else {
+    site = localContext.shift();
+  }
+  if (site === 'view') {
+    site = null;
+  }
+  if (site != null) {
+    if (site === 'local') {
+      repository.check(pageInformation, whenGotten, whenNotGotten);
+    } else {
+      if (site === 'origin') {
+        url = "/" + slug + ".json";
+      } else {
+        url = "http://" + site + "/" + slug + ".json";
+      }
+    }
+  } else {
+    url = "/" + slug + ".json";
+  }
+  return $.ajax({
+    type: 'GET',
+    dataType: 'json',
+    url: url + ("?random=" + (util.randomBytes(4))),
+    success: function(page) {
+      if (rev) {
+        page = revision.create(rev, page);
+      }
+      return whenGotten(page, site);
+    },
+    error: function(xhr, type, msg) {
+      var report;
+      if ((xhr.status !== 404) && (xhr.status !== 0)) {
+        wiki.log('pageHandler.get error', xhr, xhr.status, type, msg);
+        report = {
+          'title': "" + xhr.status + " " + msg,
+          'story': [
+            {
+              'type': 'paragraph',
+              'id': '928739187243',
+              'text': "<pre>" + xhr.responseText
+            }
+          ]
+        };
+        return whenGotten(report, 'local');
+      }
+      if (localContext.length > 0) {
+        return recursiveGet({
+          pageInformation: pageInformation,
+          whenGotten: whenGotten,
+          whenNotGotten: whenNotGotten,
+          localContext: localContext
+        });
+      } else {
+        return whenNotGotten();
+      }
+    }
+  });
+};
+
+pageHandler.get = function(_arg) {
+  var pageInformation, whenGotten, whenNotGotten;
+  whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, pageInformation = _arg.pageInformation;
+  if (pageInformation.site === void 0) {
+    return repository.check(pageInformation, whenGotten, whenNotGotten);
+  } else {
+    if (!pageHandler.context.length) {
+      pageHandler.context = ['view'];
+    }
+    return recursiveGet({
+      pageInformation: pageInformation,
+      whenGotten: whenGotten,
+      whenNotGotten: whenNotGotten,
+      localContext: _.clone(pageHandler.context)
+    });
+  }
+};
+
+pageHandler.context = [];
+
+pushToLocal = function(pageElement, pagePutInfo, action) {
+  var forkReached, page, version, _i, _ref;
+  page = pageElement.data("data");
+  if (page.journal == null) {
+    page.journal = [];
+  }
+  if (action['fork'] != null) {
+    page.journal = page.journal.concat({
+      'type': 'fork',
+      'date': action.date
+    });
+    delete action['fork'];
+  }
+  page.journal = page.journal.concat(action);
+  if (action.type !== 'create') {
+    page.story = $(pageElement).find(".item").map(function() {
+      return $(this).data("item");
+    }).get();
+  }
+  addToJournal(pageElement.find('.journal'), action);
+  page.page = wiki.asSlug(page.title) + '.json';
+  page.excludes = [];
+  page.favicon = repository.favicon;
+  forkReached = false;
+  _ref = page.journal;
+  for (_i = _ref.length - 1; _i >= 0; _i += -1) {
+    version = _ref[_i];
+    if (version.type !== 'fork' && forkReached === false) {
+      page.excludes.push(version.date);
+    } else {
+      forkReached = true;
+    }
+  }
+  console.log(page);
+  return repository.update(page);
+};
+
+pushToServer = function(pageElement, pagePutInfo, action) {
+  return $.ajax({
+    type: 'PUT',
+    url: "/page/" + pagePutInfo.slug + "/action",
+    data: {
+      'action': JSON.stringify(action)
+    },
+    success: function() {
+      addToJournal(pageElement.find('.journal'), action);
+      if (action.type === 'fork') {
+        localStorage.removeItem(pageElement.attr('id'));
+        return state.setUrl;
+      }
+    },
+    error: function(xhr, type, msg) {
+      return wiki.log("pageHandler.put ajax error callback", type, msg);
+    }
+  });
+};
+
+pageHandler.put = function(pageElement, action) {
+  var checkedSite, forkFrom, pagePutInfo;
+  checkedSite = function() {
+    var site;
+    switch (site = pageElement.data('site')) {
+      case 'origin':
+      case 'local':
+      case 'view':
+        return null;
+      case location.host:
+        return null;
+      default:
+        return site;
+    }
+  };
+  pagePutInfo = {
+    slug: pageElement.attr('id').split('_rev')[0],
+    rev: pageElement.attr('id').split('_rev')[1],
+    site: checkedSite(),
+    local: pageElement.hasClass('local')
+  };
+  forkFrom = pageElement.data('data').favicon;
+  console.log(forkFrom);
+  wiki.log('pageHandler.put', action, pagePutInfo);
+  if (wiki.useLocalStorage()) {
+    if (pagePutInfo.site != null) {
+      wiki.log('remote => local');
+    } else if (!pagePutInfo.local) {
+      wiki.log('origin => local');
+      action.site = forkFrom = location.host;
+    }
+  }
+  action.date = (new Date()).getTime();
+  if (action.site === 'origin') {
+    delete action.site;
+  }
+  if (forkFrom !== repository.favicon) {
+    pageElement.find('h1 img').attr('src', repository.favicon);
+    pageElement.find('h1 a').attr('href', '/');
+    pageElement.data('site', null);
+    pageElement.removeClass('remote');
+    state.setUrl();
+    if (action.type !== 'fork') {
+      action.fork = forkFrom;
+      addToJournal(pageElement.find('.journal'), {
+        type: 'fork',
+        site: forkFrom,
+        date: action.date
+      });
+    }
+  }
+  pushToLocal(pageElement, pagePutInfo, action);
+  return pageElement.addClass("local");
+};
+
+
+},{"./addToJournal.coffee":15,"./repository.coffee":13,"./revision.coffee":14,"./state.coffee":8,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],16:[function(require,module,exports){
+var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
+  __hasProp = {}.hasOwnProperty;
+
+_ = require('underscore');
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+util = require('./util.coffee');
+
+createSearch = require('./search.coffee');
+
+module.exports = neighborhood = {};
+
+if (wiki.neighborhood == null) {
+  wiki.neighborhood = {};
+}
+
+nextAvailableFetch = 0;
+
+nextFetchInterval = 2000;
+
+populateSiteInfoFor = function(site, neighborInfo) {
+  var fetchMap, now, transition;
+  if (neighborInfo.sitemapRequestInflight) {
+    return;
+  }
+  neighborInfo.sitemapRequestInflight = true;
+  transition = function(site, from, to) {
+    return $(".neighbor[data-site=\"" + site + "\"]").find('div').removeClass(from).addClass(to);
+  };
+  fetchMap = function() {
+    var request, sitemapUrl;
+    sitemapUrl = "http://" + site + "/system/sitemap.json";
+    transition(site, 'wait', 'fetch');
+    request = $.ajax({
+      type: 'GET',
+      dataType: 'json',
+      url: sitemapUrl
+    });
+    return request.always(function() {
+      return neighborInfo.sitemapRequestInflight = false;
+    }).done(function(data) {
+      neighborInfo.sitemap = data;
+      transition(site, 'fetch', 'done');
+      return $('body').trigger('new-neighbor-done', site);
+    }).fail(function(data) {
+      return transition(site, 'fetch', 'fail');
+    });
+  };
+  now = Date.now();
+  if (now > nextAvailableFetch) {
+    nextAvailableFetch = now + nextFetchInterval;
+    return setTimeout(fetchMap, 100);
+  } else {
+    setTimeout(fetchMap, nextAvailableFetch - now);
+    return nextAvailableFetch += nextFetchInterval;
+  }
+};
+
+wiki.registerNeighbor = neighborhood.registerNeighbor = function(site) {
+  var neighborInfo;
+  if (wiki.neighborhood[site] != null) {
+    return;
+  }
+  neighborInfo = {};
+  wiki.neighborhood[site] = neighborInfo;
+  populateSiteInfoFor(site, neighborInfo);
+  return $('body').trigger('new-neighbor', site);
+};
+
+neighborhood.listNeighbors = function() {
+  return _.keys(wiki.neighborhood);
+};
+
+neighborhood.search = function(searchQuery) {
+  var finds, match, matchingPages, neighborInfo, neighborSite, sitemap, start, tally, tick, _ref;
+  finds = [];
+  tally = {};
+  tick = function(key) {
+    if (tally[key] != null) {
+      return tally[key]++;
+    } else {
+      return tally[key] = 1;
+    }
+  };
+  match = function(key, text) {
+    var hit;
+    hit = (text != null) && text.toLowerCase().indexOf(searchQuery.toLowerCase()) >= 0;
+    if (hit) {
+      tick(key);
+    }
+    return hit;
+  };
+  start = Date.now();
+  _ref = wiki.neighborhood;
+  for (neighborSite in _ref) {
+    if (!__hasProp.call(_ref, neighborSite)) continue;
+    neighborInfo = _ref[neighborSite];
+    sitemap = neighborInfo.sitemap;
+    if (sitemap != null) {
+      tick('sites');
+    }
+    matchingPages = _.each(sitemap, function(page) {
+      tick('pages');
+      if (!(match('title', page.title) || match('text', page.synopsis) || match('slug', page.slug))) {
+        return;
+      }
+      tick('finds');
+      return finds.push({
+        page: page,
+        site: neighborSite,
+        rank: 1
+      });
+    });
+  }
+  tally['msec'] = Date.now() - start;
+  return {
+    finds: finds,
+    tally: tally
+  };
+};
+
+$(function() {
+  var $neighborhood, flag, search;
+  $neighborhood = $('.neighborhood');
+  flag = function(site) {
+    return "<span class=\"neighbor\" data-site=\"" + site + "\">\n  <div class=\"wait\">\n    <img src=\"http://" + site + "/favicon.png\" title=\"" + site + "\">\n  </div>\n</span>";
+  };
+  $('body').on('new-neighbor', function(e, site) {
+    return $neighborhood.append(flag(site));
+  }).delegate('.neighbor img', 'click', function(e) {
+    return wiki.doInternalLink('welcome-visitors', null, this.title);
+  });
+  search = createSearch({
+    neighborhood: neighborhood
+  });
+  return $('input.search').on('keypress', function(e) {
+    var searchQuery;
+    if (e.keyCode !== 13) {
+      return;
+    }
+    searchQuery = $(this).val();
+    search.performSearch(searchQuery);
+    return $(this).val("");
+  });
+});
+
+
+},{"./active.coffee":10,"./search.coffee":18,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],18:[function(require,module,exports){
+var active, createSearch, util, wiki;
+
+wiki = require('./wiki.coffee');
+
+util = require('./util.coffee');
+
+active = require('./active.coffee');
+
+createSearch = function(_arg) {
+  var neighborhood, performSearch;
+  neighborhood = _arg.neighborhood;
+  performSearch = function(searchQuery) {
+    var $searchResultPage, explanatoryPara, result, searchResultPageData, searchResultReferences, searchResults, tally;
+    searchResults = neighborhood.search(searchQuery);
+    tally = searchResults.tally;
+    explanatoryPara = {
+      type: 'paragraph',
+      id: util.randomBytes(8),
+      text: "String '" + searchQuery + "' found on " + (tally.finds || 'none') + " of " + (tally.pages || 'no') + " pages from " + (tally.sites || 'no') + " sites.\nText matched on " + (tally.title || 'no') + " titles, " + (tally.text || 'no') + " paragraphs, and " + (tally.slug || 'no') + " slugs.\nElapsed time " + tally.msec + " milliseconds."
+    };
+    searchResultReferences = (function() {
+      var _i, _len, _ref, _results;
+      _ref = searchResults.finds;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        result = _ref[_i];
+        _results.push({
+          "type": "reference",
+          "id": util.randomBytes(8),
+          "site": result.site,
+          "slug": result.page.slug,
+          "title": result.page.title,
+          "text": result.page.synopsis || ''
+        });
+      }
+      return _results;
+    })();
+    searchResultPageData = {
+      title: "Search Results",
+      story: [explanatoryPara].concat(searchResultReferences)
+    };
+    $searchResultPage = wiki.createPage('search-results').addClass('ghost');
+    $searchResultPage.appendTo($('.main'));
+    wiki.buildPage(searchResultPageData, null, $searchResultPage);
+    return active.set($('.page').last());
+  };
+  return {
+    performSearch: performSearch
+  };
+};
+
+module.exports = createSearch;
+
+
+},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2933,558 +3486,5 @@ module.exports = refresh = wiki.refresh = function() {
 }).call(this);
 
 })()
-},{}],14:[function(require,module,exports){
-var create;
-
-create = function(revIndex, data) {
-  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
-  journal = data.journal;
-  revTitle = data.title;
-  revStory = [];
-  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
-  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
-    journalEntry = revJournal[_i];
-    revStoryIds = revStory.map(function(storyItem) {
-      return storyItem.id;
-    });
-    switch (journalEntry.type) {
-      case 'create':
-        if (journalEntry.item.title != null) {
-          revTitle = journalEntry.item.title;
-          revStory = journalEntry.item.story || [];
-        }
-        break;
-      case 'add':
-        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
-          revStory.splice(afterIndex + 1, 0, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'edit':
-        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(editIndex, 1, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'move':
-        items = {};
-        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
-          storyItem = revStory[_j];
-          items[storyItem.id] = storyItem;
-        }
-        revStory = [];
-        _ref = journalEntry.order;
-        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
-          itemId = _ref[_k];
-          if (items[itemId] != null) {
-            revStory.push(items[itemId]);
-          }
-        }
-        break;
-      case 'remove':
-        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(removeIndex, 1);
-        }
-    }
-  }
-  return {
-    story: revStory,
-    journal: revJournal,
-    title: revTitle
-  };
-};
-
-exports.create = create;
-
-
-},{}],16:[function(require,module,exports){
-
-
-
-},{}],15:[function(require,module,exports){
-var util;
-
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
-  }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
-};
-
-
-},{"./util.coffee":6}],13:[function(require,module,exports){
-/* Page Mirroring with IndexedDB*/
-
-var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
-
-revision = require('./revision.coffee');
-
-plugin = require('./plugin.coffee');
-
-module.exports = repo = {};
-
-pageToContentObject = function(json) {
-  var content, name, signed, slug;
-  slug = wiki.asSlug(json.title);
-  name = new Name(slug);
-  signed = new SignedInfo();
-  content = {};
-  content.object = new ContentObject(name, signed, json, new Signature());
-  content.object.sign();
-  content.page = slug;
-  return content;
-};
-
-repo.favicon = '';
-
-pageStoreOpts = {
-  dbVersion: 1,
-  storeName: "page",
-  autoIncrement: true,
-  onStoreReady: function() {
-    /*
-    repo.ready = true
-    $.get('/system/sitemap.json', (sitemap) -> 
-        status.get(1, (favicon) ->
-          for entry in sitemap
-            $.get("/#{entry.slug}.json", (json) ->
-              json.favicon = favicon.dataUrl
-              content = json
-              content.page = wiki.asSlug(json.title) + '.json'
-              repo.update(json)
-            )
-        )
-    )
-    */
-
-  }
-};
-
-statusOpts = {
-  dbVersion: 1,
-  storeName: "status",
-  keypath: 'id',
-  autoincrement: true,
-  indexes: [
-    {
-      name: 'type',
-      unique: false,
-      multiEntry: false
-    }
-  ],
-  onStoreReady: function() {
-    var onError, onSuccess;
-    onSuccess = function(item) {
-      if (item != null) {
-        repo.favicon = item.dataUrl;
-        return console.log(item);
-      } else {
-        return plugin.get('favicon', function(favicon) {
-          return favicon.create(status, repo);
-        });
-      }
-    };
-    onError = function() {
-      return plugin.get('favicon', function(favicon) {
-        return favicon.create(status, repo);
-      });
-    };
-    return status.get(1, onSuccess, onError);
-  }
-};
-
-repo.update = function(json) {
-  var repository;
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var page;
-    console.log(json.page);
-    console.log(repository);
-    repository.put({
-      name: json.page
-    });
-    return page = new IDBStore({
-      dbVersion: 1,
-      storeName: "page/" + json.page,
-      keyPath: 'version',
-      autoIncrement: false,
-      onStoreReady: function() {
-        var version, _i, _len, _ref;
-        json.version = json.journal[json.journal.length - 1].date;
-        _ref = json.excludes;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          version = _ref[_i];
-          page.remove(version);
-        }
-        return page.put(json);
-      }
-    });
-  });
-};
-
-repo.getTwin = function(slug, version, whenGotten) {};
-
-repo.check = function(pageInformation, whenGotten, whenNotGotten) {
-  var page;
-  console.log(pageInformation);
-  return page = new IDBStore({
-    dbVersion: 1,
-    storeName: "page/" + pageInformation.slug + ".json",
-    keyPath: 'version',
-    autoIncrement: false,
-    onStoreReady: function() {
-      var onItem, pageDisplayed;
-      pageDisplayed = false;
-      onItem = function(page, cursor, transaction) {
-        if (pageDisplayed === false) {
-          if (pageInformation.rev) {
-            page = revision.create(pageInformation.rev, page);
-          }
-          whenGotten(page, 'local');
-          return pageDisplayed = true;
-        }
-      };
-      if (pageInformation.version != null) {
-        console.log('requesting specific version');
-        return page.get(pageInformation.version, function(page) {
-          return whenGotten(page, 'local');
-        });
-      } else {
-        return page.iterate(onItem, {
-          order: 'DESC',
-          onEnd: function() {
-            var exclusions, face, getClosure, interest, name, template, _i, _len, _ref, _results;
-            console.log("page not found in Repository");
-            _ref = interfaces.active;
-            _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              face = _ref[_i];
-              console.log(face.prefixURI);
-              name = new Name(face.prefixURI + '/page/' + pageInformation.slug + '.json');
-              interest = new Interest(name);
-              template = {};
-              exclusions = [];
-              getClosure = new ContentClosure(face, name, interest, function(data) {
-                var json, recursiveClosure;
-                if (data != null) {
-                  console.log(data);
-                  if (pageDisplayed === false) {
-                    whenGotten(JSON.parse(data), 'local');
-                    pageDisplayed = true;
-                  }
-                  json = JSON.parse(data);
-                  json.version = json.journal[json.journal.length - 1].date;
-                  repo.update(json);
-                  recursiveClosure = new ContentClosure(face, name, interest, function(data) {
-                    var entry, string, _j, _len1, _ref1;
-                    if (data != null) {
-                      json = JSON.parse(data);
-                      repo.update(json);
-                      console.log('got another version', json);
-                      _ref1 = json.excludes;
-                      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-                        entry = _ref1[_j];
-                        string = entry + '';
-                        exclusions.push(DataUtils.toNumbersFromString(string));
-                      }
-                      template.exclude = new Exclude(exclusions);
-                      console.log(exclusions);
-                      interest.exclude = template.exclude;
-                      return face.expressInterest(name, recursiveClosure, template);
-                    }
-                  });
-                  return face.expressInterest(name, recursiveClosure);
-                } else {
-                  if (pageDisplayed === false) {
-                    return whenNotGotten();
-                  }
-                }
-              });
-              _results.push(face.expressInterest(name, getClosure));
-            }
-            return _results;
-          }
-        });
-      }
-    }
-  });
-};
-
-repo.getTwins = function(slug, callback) {
-  var twins;
-  return twins = new IDBStore({
-    dbVersion: 1,
-    storeName: "page/" + slug + ".json",
-    keyPath: 'version',
-    autoIncrement: false,
-    onStoreReady: function() {
-      console.log(twins);
-      twins.getAll(callback);
-      return console.log('got here');
-    }
-  });
-};
-
-repo.getPage = function(slug, callback) {
-  var page;
-  return page = new IDBStore({
-    dbVersion: 1,
-    storeName: "page/" + slug,
-    keyPath: 'version',
-    autoIncrement: false,
-    onStoreReady: function() {
-      var onCheckEnd, onItem, pages;
-      pages = [];
-      onItem = function(content, cursor, transaction) {
-        var found;
-        if (content.page === slug) {
-          console.log(content);
-          found = true;
-          page = content;
-          return pages.push(page);
-        }
-      };
-      onCheckEnd = function() {
-        var done;
-        done = true;
-        return callback(pages);
-      };
-      return page.iterate(onItem, {
-        order: 'DESC',
-        onEnd: onCheckEnd
-      });
-    }
-  });
-};
-
-status = new IDBStore(statusOpts);
-
-repository = new IDBStore(pageStoreOpts);
-
-
-},{"./plugin.coffee":8,"./revision.coffee":14}],18:[function(require,module,exports){
-var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
-  __hasProp = {}.hasOwnProperty;
-
-_ = require('underscore');
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-util = require('./util.coffee');
-
-createSearch = require('./search.coffee');
-
-module.exports = neighborhood = {};
-
-if (wiki.neighborhood == null) {
-  wiki.neighborhood = {};
-}
-
-nextAvailableFetch = 0;
-
-nextFetchInterval = 2000;
-
-populateSiteInfoFor = function(site, neighborInfo) {
-  var fetchMap, now, transition;
-  if (neighborInfo.sitemapRequestInflight) {
-    return;
-  }
-  neighborInfo.sitemapRequestInflight = true;
-  transition = function(site, from, to) {
-    return $(".neighbor[data-site=\"" + site + "\"]").find('div').removeClass(from).addClass(to);
-  };
-  fetchMap = function() {
-    var request, sitemapUrl;
-    sitemapUrl = "http://" + site + "/system/sitemap.json";
-    transition(site, 'wait', 'fetch');
-    request = $.ajax({
-      type: 'GET',
-      dataType: 'json',
-      url: sitemapUrl
-    });
-    return request.always(function() {
-      return neighborInfo.sitemapRequestInflight = false;
-    }).done(function(data) {
-      neighborInfo.sitemap = data;
-      transition(site, 'fetch', 'done');
-      return $('body').trigger('new-neighbor-done', site);
-    }).fail(function(data) {
-      return transition(site, 'fetch', 'fail');
-    });
-  };
-  now = Date.now();
-  if (now > nextAvailableFetch) {
-    nextAvailableFetch = now + nextFetchInterval;
-    return setTimeout(fetchMap, 100);
-  } else {
-    setTimeout(fetchMap, nextAvailableFetch - now);
-    return nextAvailableFetch += nextFetchInterval;
-  }
-};
-
-wiki.registerNeighbor = neighborhood.registerNeighbor = function(site) {
-  var neighborInfo;
-  if (wiki.neighborhood[site] != null) {
-    return;
-  }
-  neighborInfo = {};
-  wiki.neighborhood[site] = neighborInfo;
-  populateSiteInfoFor(site, neighborInfo);
-  return $('body').trigger('new-neighbor', site);
-};
-
-neighborhood.listNeighbors = function() {
-  return _.keys(wiki.neighborhood);
-};
-
-neighborhood.search = function(searchQuery) {
-  var finds, match, matchingPages, neighborInfo, neighborSite, sitemap, start, tally, tick, _ref;
-  finds = [];
-  tally = {};
-  tick = function(key) {
-    if (tally[key] != null) {
-      return tally[key]++;
-    } else {
-      return tally[key] = 1;
-    }
-  };
-  match = function(key, text) {
-    var hit;
-    hit = (text != null) && text.toLowerCase().indexOf(searchQuery.toLowerCase()) >= 0;
-    if (hit) {
-      tick(key);
-    }
-    return hit;
-  };
-  start = Date.now();
-  _ref = wiki.neighborhood;
-  for (neighborSite in _ref) {
-    if (!__hasProp.call(_ref, neighborSite)) continue;
-    neighborInfo = _ref[neighborSite];
-    sitemap = neighborInfo.sitemap;
-    if (sitemap != null) {
-      tick('sites');
-    }
-    matchingPages = _.each(sitemap, function(page) {
-      tick('pages');
-      if (!(match('title', page.title) || match('text', page.synopsis) || match('slug', page.slug))) {
-        return;
-      }
-      tick('finds');
-      return finds.push({
-        page: page,
-        site: neighborSite,
-        rank: 1
-      });
-    });
-  }
-  tally['msec'] = Date.now() - start;
-  return {
-    finds: finds,
-    tally: tally
-  };
-};
-
-$(function() {
-  var $neighborhood, flag, search;
-  $neighborhood = $('.neighborhood');
-  flag = function(site) {
-    return "<span class=\"neighbor\" data-site=\"" + site + "\">\n  <div class=\"wait\">\n    <img src=\"http://" + site + "/favicon.png\" title=\"" + site + "\">\n  </div>\n</span>";
-  };
-  $('body').on('new-neighbor', function(e, site) {
-    return $neighborhood.append(flag(site));
-  }).delegate('.neighbor img', 'click', function(e) {
-    return wiki.doInternalLink('welcome-visitors', null, this.title);
-  });
-  search = createSearch({
-    neighborhood: neighborhood
-  });
-  return $('input.search').on('keypress', function(e) {
-    var searchQuery;
-    if (e.keyCode !== 13) {
-      return;
-    }
-    searchQuery = $(this).val();
-    search.performSearch(searchQuery);
-    return $(this).val("");
-  });
-});
-
-
-},{"./active.coffee":10,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
-var active, createSearch, util, wiki;
-
-wiki = require('./wiki.coffee');
-
-util = require('./util.coffee');
-
-active = require('./active.coffee');
-
-createSearch = function(_arg) {
-  var neighborhood, performSearch;
-  neighborhood = _arg.neighborhood;
-  performSearch = function(searchQuery) {
-    var $searchResultPage, explanatoryPara, result, searchResultPageData, searchResultReferences, searchResults, tally;
-    searchResults = neighborhood.search(searchQuery);
-    tally = searchResults.tally;
-    explanatoryPara = {
-      type: 'paragraph',
-      id: util.randomBytes(8),
-      text: "String '" + searchQuery + "' found on " + (tally.finds || 'none') + " of " + (tally.pages || 'no') + " pages from " + (tally.sites || 'no') + " sites.\nText matched on " + (tally.title || 'no') + " titles, " + (tally.text || 'no') + " paragraphs, and " + (tally.slug || 'no') + " slugs.\nElapsed time " + tally.msec + " milliseconds."
-    };
-    searchResultReferences = (function() {
-      var _i, _len, _ref, _results;
-      _ref = searchResults.finds;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        result = _ref[_i];
-        _results.push({
-          "type": "reference",
-          "id": util.randomBytes(8),
-          "site": result.site,
-          "slug": result.page.slug,
-          "title": result.page.title,
-          "text": result.page.synopsis || ''
-        });
-      }
-      return _results;
-    })();
-    searchResultPageData = {
-      title: "Search Results",
-      story: [explanatoryPara].concat(searchResultReferences)
-    };
-    $searchResultPage = wiki.createPage('search-results').addClass('ghost');
-    $searchResultPage.appendTo($('.main'));
-    wiki.buildPage(searchResultPageData, null, $searchResultPage);
-    return active.set($('.page').last());
-  };
-  return {
-    performSearch: performSearch
-  };
-};
-
-module.exports = createSearch;
-
-
-},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
+},{}]},{},[1])
 ;

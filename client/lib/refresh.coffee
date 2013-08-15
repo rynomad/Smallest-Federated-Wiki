@@ -233,7 +233,8 @@ module.exports = refresh = wiki.refresh = ->
         'type': 'future'
         'text': 'We could not find this page.'
         'title': title
-      ]
+      ],
+      'favicon': repository.favicon
     heading =
       'type': 'paragraph'
       'id': util.randomBytes(8)

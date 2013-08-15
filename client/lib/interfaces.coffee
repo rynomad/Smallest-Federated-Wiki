@@ -12,22 +12,26 @@ interestHandler = (face, upcallInfo) ->
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length])
   console.log contentStore
   if contentStore == 'page'
-    console.log 'getting page'
-    slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
-    repo.getPage(slug, (pages) ->
-      interest = upcallInfo.interest
-      signed = new SignedInfo()
-      sent = false
-      for page in pages
-        if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true && sent == false
-          console.log page.version, interest.excludes
-          co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
-          console.log co
-          co.signedInfo.freshnessSeconds = 604800
-          co.sign()
-          upcallInfo.contentObject = co
-          face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
-    )
+    if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'update'
+      slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2])
+      console.log face.prefixURI
+    else
+      console.log 'getting page'
+      slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
+      repo.getPage(slug, (pages) ->
+        interest = upcallInfo.interest
+        signed = new SignedInfo()
+        sent = false
+        for page in pages
+          if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true && sent == false
+            console.log page.version, interest.excludes
+            co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
+            console.log co
+            co.signedInfo.freshnessSeconds = 604800
+            co.sign()
+            upcallInfo.contentObject = co
+            face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
+      )
 
 interfaces.registerFace = (url) ->
   face = new NDN({host: url})

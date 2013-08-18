@@ -17,8 +17,9 @@ pageFromLocalStorage = (slug)->
 
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   {slug,rev,site,version} = pageInformation
-  pageInformation.slug = pageInformation.slug
+  repository.getPage(pageInformation, whenGotten, whenNotGotten)
 
+  ###
   if site
     localContext = []
   else
@@ -59,20 +60,16 @@ recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
         recursiveGet( {pageInformation, whenGotten, whenNotGotten, localContext} )
       else
         whenNotGotten()
-
+  ###
 pageHandler.get = ({whenGotten,whenNotGotten,pageInformation}  ) ->
 
-  if pageInformation.site == undefined
-    repository.check(pageInformation, whenGotten, whenNotGotten)
+  pageHandler.context = ['view']
   
-  else
-    pageHandler.context = ['view'] unless pageHandler.context.length
-    
-    recursiveGet
-      pageInformation: pageInformation
-      whenGotten: whenGotten
-      whenNotGotten: whenNotGotten
-      localContext: _.clone(pageHandler.context)
+  recursiveGet
+    pageInformation: pageInformation
+    whenGotten: whenGotten
+    whenNotGotten: whenNotGotten
+    localContext: _.clone(pageHandler.context)
 
 
 pageHandler.context = []
@@ -96,7 +93,7 @@ pushToLocal = (pageElement, pagePutInfo, action) ->
     else
       forkReached = true
   console.log page
-  repository.update(page)
+  repository.updatePage(page)
   
 
 pushToServer = (pageElement, pagePutInfo, action) ->

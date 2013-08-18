@@ -25,21 +25,24 @@ pageStoreOpts = {
   dbVersion: 1,
   storeName: "page",
   autoIncrement: true,
+  indexes: [
+    {name: "name", unique: true}
+  ],
   onStoreReady: () ->
-    ###
     repo.ready = true
     $.get('/system/sitemap.json', (sitemap) -> 
-        status.get(1, (favicon) ->
-          for entry in sitemap
-            $.get("/#{entry.slug}.json", (json) ->
-              json.favicon = favicon.dataUrl
-              content = json
-              content.page = wiki.asSlug(json.title) + '.json'
-              repo.update(json)
-            )
-        )
-    )       
-    ###
+      ###    
+      status.get(1, (favicon) ->
+        for entry in sitemap
+          $.get("/#{entry.slug}.json", (json) ->
+            json.favicon = favicon.dataUrl
+            content = json
+            content.page = wiki.asSlug(json.title) + '.json'
+            repo.update(json)
+          )
+      )
+      ###
+    )
 }
 
 statusOpts= {
@@ -65,28 +68,88 @@ statusOpts= {
         favicon.create(status, repo)
     status.get(1, onSuccess, onError)
 }
+repo.getSitemap = (whenGotten) ->
+  sitemap = new IDBStore({
+    dbVersion: 1,
+    storeName: "system/sitemap.json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: () ->
+      onsitemaps = (sitemaps) ->
+        console.log sitemaps[0]
+        whenGotten(sitemaps[0])
+      sitemap.getAll(onsitemaps)
+  })
 
-repo.update = (json) ->
+repo.updateSitemap = () ->
+  sitemap = []
+  sitemap.version = (new Date()).getTime()
+  
+  repository = new IDBStore(pageStoreOpts, () ->
+    fetchVersions = (name) ->
+      console.log name
+      store = new IDBStore({
+        dbVersion: 1,
+        storeName: "page/#{name}",
+        keyPath: "version",
+        autoIncrement: false,
+        onStoreReady: () ->
+          listPageVersions = (versions) ->
+            for version in versions
+              uri = "page/#{name}/#{version.version}"
+              sitemap.push uri
+          store.getAll(listPageVersions)
+          console.log sitemap
+        })
+    fetchPages = (pages) ->
+      for page in pages
+        fetchVersions(page.name)
+    repository.getAll(fetchPages)
+    console.log 'there'
+  )
+      
+  sitemapStore = new IDBStore({
+    dbVersion: 1,
+    storeName: "system/sitemap.json",
+    keyPath: "version",
+    autoIncrement: false,
+    onStoreReady: () ->
+      
+  })
+
+
+repo.updatePage = (json) ->
   repository = new IDBStore(pageStoreOpts, () ->
     console.log json.page
     console.log repository
-    repository.put({name: json.page})
+    onSuccess = () ->
+      console.log "success!"
+    onError = () ->
+      console.log "already got page!"
+    repository.put({name: json.page}, onSuccess, onError )
     page = new IDBStore({
       dbVersion: 1,
       storeName: "page/#{json.page}",
       keyPath: 'version',
       autoIncrement: false,
       onStoreReady: () ->
+        
         json.version = json.journal[json.journal.length - 1].date
         for version in json.excludes
           page.remove (version)
-        page.put json
+        console.log "putting", json
+        onSuccess = () ->
+          console.log "successfully put ", json
+          repo.updateSitemap()
+        page.put json, onSuccess
+        
     })
   )
 
 repo.getTwin = (slug, version, whenGotten) ->
 
 #Check to see if a page is in the repository, and perform the appropriate callback
+###
 repo.check = (pageInformation, whenGotten, whenNotGotten) ->
   console.log pageInformation
   page = new IDBStore({
@@ -128,11 +191,11 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
                     pageDisplayed = true
                   json = JSON.parse(data)
                   json.version = json.journal[json.journal.length - 1].date
-                  repo.update json
+                  repo.updatePage json
                   recursiveClosure = new ContentClosure(face, name, interest, (data) ->
                     if data?
                       json = JSON.parse(data)
-                      repo.update json
+                      repo.updatePage json
                       console.log 'got another version', json
                       for entry in json.excludes
                         string = entry + ''
@@ -149,6 +212,7 @@ repo.check = (pageInformation, whenGotten, whenNotGotten) ->
               face.expressInterest(name, getClosure)
         })
   })
+###
 
 repo.getTwins = (slug, callback) ->
   twins = new IDBStore ({
@@ -162,34 +226,55 @@ repo.getTwins = (slug, callback) ->
       console.log 'got here'
   })
 
-repo.getPage = (slug, callback) ->
+repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
   page = new IDBStore({
-      dbVersion: 1,
-      storeName: "page/#{slug}",
-      keyPath: 'version',
-      autoIncrement: false,
-      onStoreReady: () ->
-        pages = []
-        onItem = (content, cursor, transaction) ->
-          if content.page == slug
-            console.log content
-            found = true
-            page = content
-            pages.push(page)
-        onCheckEnd = () ->
-            done = true
-            callback pages
-        page.iterate(onItem, {
+    dbVersion: 1,
+    storeName: "page/#{pageInformation.slug}.json",
+    keyPath: 'version',
+    autoIncrement: false,
+    onStoreReady: () ->
+      name = "/localhost/page/#{pageInformation.slug}.json"
+      if pageInformation.version?
+        console.log 'requesting specific version'
+        page.get(pageInformation.version, (page) ->
+          whenGotten(page)
+        )
+      else
+        found = false
+        onItem1 = (content, cursor, transaction) ->
+          console.log content
+          if content != null
+            if content.favicon == repo.favicon
+              if found == false
+                found = true
+                whenGotten(content)
+        onItem2 = (content, cursor, transaction) ->
+          if content != null
+            if found == false
+              found = true
+              whenGotten(content)
+        onCheckEnd1 = () ->
+          if found == false
+            console.log 'found: ', found
+            page.iterate(onItem2, {
+              order: 'DESC',
+              onEnd: onCheckEnd2
+            })
+        onCheckEnd2 = () ->
+          if found == false
+            console.log 'Didnt Find Page!'
+            whenNotGotten() if whenNotGotten?
+        page.iterate(onItem1, {
           order: 'DESC',
-          onEnd: onCheckEnd        
+          onEnd: onCheckEnd1()
         })
   })
-  
-  
+
+
 status = new IDBStore(statusOpts)
 repository = new IDBStore(pageStoreOpts)
 
-
+repo.updateSitemap(378248234)
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping
 

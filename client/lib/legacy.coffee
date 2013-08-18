@@ -6,6 +6,7 @@ state = require './state.coffee'
 active = require './active.coffee'
 refresh = require './refresh.coffee'
 require './interfaces.coffee'
+sync = require './sync.coffee'
 
 
 Array::last = ->
@@ -307,4 +308,3 @@ $ ->
     active.set($('.page').last())
     
 interfaces.registerFace(location.host.split(':')[0])
-

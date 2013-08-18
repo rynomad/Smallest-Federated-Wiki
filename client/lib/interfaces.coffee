@@ -7,32 +7,34 @@ interfaces.list = []
 interfaces.active = []
 
 interestHandler = (face, upcallInfo) ->
-  #logic goes here 
-  console.log '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',face, upcallInfo.interest.name
+  #logic goes here
+  sendData = (data) -> 
+    signed = new SignedInfo()
+    sent = false
+    if interest.matches_name(new Name(interest.name.to_uri() + '/' + data.version)) == true && sent == false
+      co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + data.version), signed, JSON.stringify(data), new Signature())
+      console.log co
+      co.signedInfo.freshnessSeconds = 604800
+      co.sign()
+      upcallInfo.contentObject = co
+      face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length])
-  console.log contentStore
+  console.log 'iiiiiiiiiiiiiiiiiiiiiiiii', upcallInfo.interest
+  interest = upcallInfo.interest
+  
   if contentStore == 'page'
     if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'update'
       slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2])
       console.log face.prefixURI
     else
       console.log 'getting page'
-      slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
-      repo.getPage(slug, (pages) ->
-        interest = upcallInfo.interest
-        signed = new SignedInfo()
-        sent = false
-        for page in pages
-          if interest.matches_name(new Name(interest.name.to_uri() + '/' + page.version)) == true && sent == false
-            console.log page.version, interest.excludes
-            co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + page.version), signed, JSON.stringify(page), new Signature())
-            console.log co
-            co.signedInfo.freshnessSeconds = 604800
-            co.sign()
-            upcallInfo.contentObject = co
-            face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
-      )
-
+      pI = {}
+      pI.slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
+      repo.getPage(pI , sendData)
+  else if contentStore == 'system'
+    if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'sitemap.json'
+      repo.getSitemap(sendData)
+      
 interfaces.registerFace = (url) ->
   face = new NDN({host: url})
   hostPrefix = ''
@@ -47,6 +49,4 @@ interfaces.registerFace = (url) ->
   interfaces.faces[hostPrefix].registerPrefix(prefix, (new interfaceClosure(face, interestHandler)))
   interfaces.list.push(hostPrefix)
   interfaces.active.push(interfaces.faces[hostPrefix])
-
-
 

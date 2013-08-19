@@ -8,11 +8,15 @@ interfaces.active = []
 
 interestHandler = (face, upcallInfo) ->
   #logic goes here
-  sendData = (data) -> 
+  sendData = (data) ->
     signed = new SignedInfo()
     sent = false
+    console.log data
     if interest.matches_name(new Name(interest.name.to_uri() + '/' + data.version)) == true && sent == false
-      co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + data.version), signed, JSON.stringify(data), new Signature())
+      console.log data
+      string = JSON.stringify(data)
+      console.log string
+      co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + data.version), signed, string, new Signature())
       console.log co
       co.signedInfo.freshnessSeconds = 604800
       co.sign()
@@ -29,7 +33,10 @@ interestHandler = (face, upcallInfo) ->
     else
       console.log 'getting page'
       pI = {}
-      pI.slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
+      
+      withJson = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
+      pI.slug = withJson.slice(0, -5)
+      console.log pI.slug
       repo.getPage(pI , sendData)
   else if contentStore == 'system'
     if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'sitemap.json'

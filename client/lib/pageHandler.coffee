@@ -6,6 +6,7 @@ state = require './state.coffee'
 revision = require './revision.coffee'
 addToJournal = require './addToJournal.coffee'
 repository = require './repository.coffee'
+sync = require './sync.coffee'
 
 module.exports = pageHandler = {}
 
@@ -18,7 +19,7 @@ pageFromLocalStorage = (slug)->
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   {slug,rev,site,version} = pageInformation
   repository.getPage(pageInformation, whenGotten, whenNotGotten)
-
+  sync.getSitemaps()
   ###
   if site
     localContext = []

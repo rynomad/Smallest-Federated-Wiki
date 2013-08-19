@@ -306,5 +306,3 @@ $ ->
     state.first()
     $('.page').each refresh
     active.set($('.page').last())
-    
-interfaces.registerFace(location.host.split(':')[0])

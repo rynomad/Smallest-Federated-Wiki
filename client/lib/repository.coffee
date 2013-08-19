@@ -77,15 +77,17 @@ repo.getSitemap = (whenGotten) ->
     onStoreReady: () ->
       onsitemaps = (sitemaps) ->
         console.log sitemaps[0]
-        whenGotten(sitemaps[0])
+        whenGotten(sitemaps[sitemaps.length-1])
       sitemap.getAll(onsitemaps)
   })
 
 repo.updateSitemap = () ->
-  sitemap = []
+  sitemap = {}
+  sitemap.list = []
   sitemap.version = (new Date()).getTime()
   
   repository = new IDBStore(pageStoreOpts, () ->
+    ###
     fetchVersions = (name) ->
       console.log name
       store = new IDBStore({
@@ -97,13 +99,30 @@ repo.updateSitemap = () ->
           listPageVersions = (versions) ->
             for version in versions
               uri = "page/#{name}/#{version.version}"
-              sitemap.push uri
+              sitemap.list.push uri
           store.getAll(listPageVersions)
-          console.log sitemap
+          
         })
+    ###
     fetchPages = (pages) ->
       for page in pages
-        fetchVersions(page.name)
+        console.log page
+        sitemap.list.push(page.name)
+      sitemaps = new IDBStore({
+        dbVersion: 1,
+        storeName: "system/sitemap.json",
+        keyPath: "version",
+        autoIncrement: false,
+        onStoreReady: () ->
+          onItem = (data) ->
+            sitemaps.remove(data.version)
+          sitemaps.iterate(onItem,{
+            order: 'DESC',
+            onEnd: () ->
+              sitemaps.put(sitemap)
+              console.log "put sitemap"
+          })
+      })
     repository.getAll(fetchPages)
     console.log 'there'
   )

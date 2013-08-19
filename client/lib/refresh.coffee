@@ -276,5 +276,5 @@ module.exports = refresh = wiki.refresh = ->
     whenGotten: whenGotten
     whenNotGotten: createGhostPage
     pageInformation: pageInformation
-  
-  sync.getSitemapsOnFace(interfaces.active[0])
+    
+  sync.getSitemaps()

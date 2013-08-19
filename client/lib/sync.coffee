@@ -1,6 +1,6 @@
 # Synchronize pageStore with all other connected Clients
 
-
+require './interfaces.coffee'
 repository = require './repository.coffee'
 
 module.exports = sync = {}
@@ -17,10 +17,11 @@ urlToPrefix = (url) ->
 
 sync.getPagesFromSitemap = (face, sitemap) ->
   facePrefix = urlToPrefix(face.host)
-  for page in sitemap
-    nameUri = facePrefix + '/page/' + page.slug + '.json/' + page.date
+  for page in sitemap.list
+    nameUri = facePrefix + '/page/' + page
     name = new Name(nameUri)
     sync.fetchAllOnFace face, 'page', name
+    console.log name
      
 
 sync.fetchAllOnFace = (face, type, name) ->
@@ -32,11 +33,13 @@ sync.fetchAllOnFace = (face, type, name) ->
       console.log "got data ", data
       json = JSON.parse(data)
       if type == 'sitemap'
-        getPagesFromSitemap(face, json)
-        string = json.date + ''
+        console.log json
+        sync.getPagesFromSitemap(face, json)
+        string = json.version + ''
+        console.log string
         exclusions.push DataUtils.toNumbersFromString(string)
       else if type == 'page'
-        console.log json
+        console.log 'gggggggggggggggggggggggooooooooooooooooooooooooot pppppppppppppppppppppp', json
         repository.updatePage(json)
         for entry in json.excludes
           string = entry + ''
@@ -50,10 +53,13 @@ sync.fetchAllOnFace = (face, type, name) ->
   )
   face.expressInterest(name, recursiveClosure)
 
-sync.getSitemapsOnFace = (face) ->
-  prefix = urlToPrefix(face.host)
-  sitemapUri = prefix + "/system/sitemap.json"
-  console.log sitemapUri
-  sitemapName = new Name(sitemapUri)
-  sync.fetchAllOnFace(face, 'sitemap', sitemapName)
+sync.getSitemaps = () ->
+  for face in interfaces.active
+    prefix = urlToPrefix(face.host)
+    sitemapUri = prefix + "/system/sitemap.json"
+    console.log sitemapUri
+    sitemapName = new Name(sitemapUri)
+    sync.fetchAllOnFace(face, 'sitemap', sitemapName)
+    
+interfaces.registerFace('localhost')
 

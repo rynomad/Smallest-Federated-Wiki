@@ -19,7 +19,6 @@ pageFromLocalStorage = (slug)->
 recursiveGet = ({pageInformation, whenGotten, whenNotGotten, localContext}) ->
   {slug,rev,site,version} = pageInformation
   repository.getPage(pageInformation, whenGotten, whenNotGotten)
-  sync.getSitemaps()
   ###
   if site
     localContext = []

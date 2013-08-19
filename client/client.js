@@ -504,7 +504,34 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":8,"./plugin.coffee":7,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
+},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],5:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],4:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -551,33 +578,6 @@ module.exports = function(owner) {
     e.preventDefault();
     return navigator.id.logout();
   });
-};
-
-
-},{}],5:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
 };
 
 
@@ -763,7 +763,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],7:[function(require,module,exports){
+},{"./wiki.coffee":2}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -905,7 +905,109 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],13:[function(require,module,exports){
+var fetchAllOnFace, getPagesFromSitemap, repository, sync, urlToPrefix;
+
+require('./interfaces.coffee');
+
+repository = require('./repository.coffee');
+
+urlToPrefix = function(url) {
+  var component, hostComponents, prefix, _i, _len;
+  prefix = '';
+  hostComponents = url.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      if (component !== 'http://www') {
+        if (component !== 'http://') {
+          prefix = ("/" + component) + prefix;
+        }
+      }
+    }
+  }
+  return prefix;
+};
+
+getPagesFromSitemap = function(face, sitemap) {
+  var facePrefix, name, nameUri, page, _i, _len, _ref, _results;
+  facePrefix = urlToPrefix(face.host);
+  _ref = sitemap.list;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    page = _ref[_i];
+    nameUri = facePrefix + '/page/' + page;
+    name = new Name(nameUri);
+    fetchAllOnFace(face, 'page', name);
+    _results.push(console.log(name));
+  }
+  return _results;
+};
+
+fetchAllOnFace = function(face, type, name) {
+  var exclusions, interest, recursiveCallback, recursiveClosure, template;
+  interest = new Interest(name);
+  template = {};
+  exclusions = [];
+  recursiveCallback = function(data) {
+    var entry, json, recursiveClosure, string, _i, _len, _ref;
+    if (data != null) {
+      console.log("got data ", data);
+      json = JSON.parse(data);
+      if (type === 'sitemap') {
+        console.log(json);
+        getPagesFromSitemap(face, json);
+        string = json.version + '';
+        console.log(string);
+        exclusions.push(DataUtils.toNumbersFromString(string));
+      } else if (type === 'page') {
+        console.log('gggggggggggggggggggggggooooooooooooooooooooooooot pppppppppppppppppppppp', json);
+        repository.updatePage(json);
+        _ref = json.excludes;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          entry = _ref[_i];
+          string = entry + '';
+          exclusions.push(DataUtils.toNumbersFromString(string));
+        }
+      }
+      template.exclude = new Exclude(exclusions);
+      console.log(exclusions);
+      interest.exclude = template.exclude;
+      recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+      return face.expressInterest(name, recursiveClosure, template);
+    } else {
+      console.log("interest timed out for ", type, name);
+      if (type === 'sitemap') {
+        recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+        return face.expressInterest(name, recursiveClosure, template);
+      }
+    }
+  };
+  recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+  return face.expressInterest(name, recursiveClosure);
+};
+
+module.exports = sync = function() {
+  var face, prefix, sitemapName, sitemapUri, _i, _len, _ref, _results;
+  _ref = interfaces.active;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    face = _ref[_i];
+    prefix = urlToPrefix(face.host);
+    sitemapUri = prefix + "/system/sitemap.json";
+    console.log(sitemapUri);
+    sitemapName = new Name(sitemapUri);
+    _results.push(fetchAllOnFace(face, 'sitemap', sitemapName));
+  }
+  return _results;
+};
+
+interfaces.registerFace('localhost');
+
+sync();
+
+
+},{"./interfaces.coffee":12,"./repository.coffee":14}],9:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1053,7 +1155,6 @@ interestHandler = function(face, upcallInfo) {
     }
   };
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length]);
-  console.log('iiiiiiiiiiiiiiiiiiiiiiiii', upcallInfo.interest);
   interest = upcallInfo.interest;
   if (contentStore === 'page') {
     if (DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) === 'update') {
@@ -1097,103 +1198,7 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":14}],13:[function(require,module,exports){
-var repository, sync, urlToPrefix;
-
-require('./interfaces.coffee');
-
-repository = require('./repository.coffee');
-
-module.exports = sync = {};
-
-urlToPrefix = function(url) {
-  var component, hostComponents, prefix, _i, _len;
-  prefix = '';
-  hostComponents = url.split('.');
-  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-    component = hostComponents[_i];
-    if (component !== 'www') {
-      if (component !== 'http://www') {
-        if (component !== 'http://') {
-          prefix = ("/" + component) + prefix;
-        }
-      }
-    }
-  }
-  return prefix;
-};
-
-sync.getPagesFromSitemap = function(face, sitemap) {
-  var facePrefix, name, nameUri, page, _i, _len, _ref, _results;
-  facePrefix = urlToPrefix(face.host);
-  _ref = sitemap.list;
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    page = _ref[_i];
-    nameUri = facePrefix + '/page/' + page;
-    name = new Name(nameUri);
-    sync.fetchAllOnFace(face, 'page', name);
-    _results.push(console.log(name));
-  }
-  return _results;
-};
-
-sync.fetchAllOnFace = function(face, type, name) {
-  var exclusions, interest, recursiveClosure, template;
-  interest = new Interest(name);
-  template = {};
-  exclusions = [];
-  recursiveClosure = new ContentClosure(face, name, interest, function(data) {
-    var entry, json, string, _i, _len, _ref;
-    if (data != null) {
-      console.log("got data ", data);
-      json = JSON.parse(data);
-      if (type === 'sitemap') {
-        console.log(json);
-        sync.getPagesFromSitemap(face, json);
-        string = json.version + '';
-        console.log(string);
-        exclusions.push(DataUtils.toNumbersFromString(string));
-      } else if (type === 'page') {
-        console.log('gggggggggggggggggggggggooooooooooooooooooooooooot pppppppppppppppppppppp', json);
-        repository.updatePage(json);
-        _ref = json.excludes;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          entry = _ref[_i];
-          string = entry + '';
-          exclusions.push(DataUtils.toNumbersFromString(string));
-        }
-      }
-      template.exclude = new Exclude(exclusions);
-      console.log(exclusions);
-      interest.exclude = template.exclude;
-      return face.expressInterest(name, recursiveClosure, template);
-    } else {
-      return console.log("interest timed out for ", type, name);
-    }
-  });
-  return face.expressInterest(name, recursiveClosure);
-};
-
-sync.getSitemaps = function() {
-  var face, prefix, sitemapName, sitemapUri, _i, _len, _ref, _results;
-  _ref = interfaces.active;
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    face = _ref[_i];
-    prefix = urlToPrefix(face.host);
-    sitemapUri = prefix + "/system/sitemap.json";
-    console.log(sitemapUri);
-    sitemapName = new Name(sitemapUri);
-    _results.push(sync.fetchAllOnFace(face, 'sitemap', sitemapName));
-  }
-  return _results;
-};
-
-interfaces.registerFace('localhost');
-
-
-},{"./interfaces.coffee":12,"./repository.coffee":14}],8:[function(require,module,exports){
+},{"./repository.coffee":14}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, sync, util, wiki, _;
 
 _ = require('underscore');
@@ -1227,8 +1232,7 @@ recursiveGet = function(_arg) {
   var localContext, pageInformation, rev, site, slug, version, whenGotten, whenNotGotten;
   pageInformation = _arg.pageInformation, whenGotten = _arg.whenGotten, whenNotGotten = _arg.whenNotGotten, localContext = _arg.localContext;
   slug = pageInformation.slug, rev = pageInformation.rev, site = pageInformation.site, version = pageInformation.version;
-  repository.getPage(pageInformation, whenGotten, whenNotGotten);
-  return sync.getSitemaps();
+  return repository.getPage(pageInformation, whenGotten, whenNotGotten);
   /*
   if site
     localContext = []
@@ -1762,82 +1766,15 @@ module.exports = refresh = wiki.refresh = function() {
     wiki.buildPage(data, siteFound, $page);
     return registerNeighbors(data, siteFound);
   };
-  pageHandler.get({
+  return pageHandler.get({
     whenGotten: whenGotten,
     whenNotGotten: createGhostPage,
     pageInformation: pageInformation
   });
-  return sync.getSitemaps();
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":8,"./plugin.coffee":7,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],15:[function(require,module,exports){
-var create;
-
-create = function(revIndex, data) {
-  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
-  journal = data.journal;
-  revTitle = data.title;
-  revStory = [];
-  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
-  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
-    journalEntry = revJournal[_i];
-    revStoryIds = revStory.map(function(storyItem) {
-      return storyItem.id;
-    });
-    switch (journalEntry.type) {
-      case 'create':
-        if (journalEntry.item.title != null) {
-          revTitle = journalEntry.item.title;
-          revStory = journalEntry.item.story || [];
-        }
-        break;
-      case 'add':
-        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
-          revStory.splice(afterIndex + 1, 0, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'edit':
-        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(editIndex, 1, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'move':
-        items = {};
-        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
-          storyItem = revStory[_j];
-          items[storyItem.id] = storyItem;
-        }
-        revStory = [];
-        _ref = journalEntry.order;
-        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
-          itemId = _ref[_k];
-          if (items[itemId] != null) {
-            revStory.push(items[itemId]);
-          }
-        }
-        break;
-      case 'remove':
-        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(removeIndex, 1);
-        }
-    }
-  }
-  return {
-    story: revStory,
-    journal: revJournal,
-    title: revTitle
-  };
-};
-
-exports.create = create;
-
-
-},{}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3086,6 +3023,72 @@ exports.create = create;
 }).call(this);
 
 })()
+},{}],15:[function(require,module,exports){
+var create;
+
+create = function(revIndex, data) {
+  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
+  journal = data.journal;
+  revTitle = data.title;
+  revStory = [];
+  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
+  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
+    journalEntry = revJournal[_i];
+    revStoryIds = revStory.map(function(storyItem) {
+      return storyItem.id;
+    });
+    switch (journalEntry.type) {
+      case 'create':
+        if (journalEntry.item.title != null) {
+          revTitle = journalEntry.item.title;
+          revStory = journalEntry.item.story || [];
+        }
+        break;
+      case 'add':
+        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
+          revStory.splice(afterIndex + 1, 0, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'edit':
+        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(editIndex, 1, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'move':
+        items = {};
+        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
+          storyItem = revStory[_j];
+          items[storyItem.id] = storyItem;
+        }
+        revStory = [];
+        _ref = journalEntry.order;
+        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
+          itemId = _ref[_k];
+          if (items[itemId] != null) {
+            revStory.push(items[itemId]);
+          }
+        }
+        break;
+      case 'remove':
+        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(removeIndex, 1);
+        }
+    }
+  }
+  return {
+    story: revStory,
+    journal: revJournal,
+    title: revTitle
+  };
+};
+
+exports.create = create;
+
+
 },{}],16:[function(require,module,exports){
 var util;
 
@@ -3220,29 +3223,11 @@ repo.getSitemap = function(whenGotten) {
 };
 
 repo.updateSitemap = function() {
-  var repository, sitemap, sitemapStore;
+  var repository, sitemap;
   sitemap = {};
   sitemap.list = [];
   sitemap.version = (new Date()).getTime();
-  repository = new IDBStore(pageStoreOpts, function() {
-    /*
-    fetchVersions = (name) ->
-      console.log name
-      store = new IDBStore({
-        dbVersion: 1,
-        storeName: "page/#{name}",
-        keyPath: "version",
-        autoIncrement: false,
-        onStoreReady: () ->
-          listPageVersions = (versions) ->
-            for version in versions
-              uri = "page/#{name}/#{version.version}"
-              sitemap.list.push uri
-          store.getAll(listPageVersions)
-          
-        })
-    */
-
+  return repository = new IDBStore(pageStoreOpts, function() {
     var fetchPages;
     fetchPages = function(pages) {
       var page, sitemaps, _i, _len;
@@ -3273,13 +3258,6 @@ repo.updateSitemap = function() {
     };
     repository.getAll(fetchPages);
     return console.log('there');
-  });
-  return sitemapStore = new IDBStore({
-    dbVersion: 1,
-    storeName: "system/sitemap.json",
-    keyPath: "version",
-    autoIncrement: false,
-    onStoreReady: function() {}
   });
 };
 
@@ -3474,7 +3452,7 @@ repository = new IDBStore(pageStoreOpts);
 repo.updateSitemap(378248234);
 
 
-},{"./plugin.coffee":7,"./revision.coffee":15}],18:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":15}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

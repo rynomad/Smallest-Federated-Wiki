@@ -87,23 +87,6 @@ repo.updateSitemap = () ->
   sitemap.version = (new Date()).getTime()
   
   repository = new IDBStore(pageStoreOpts, () ->
-    ###
-    fetchVersions = (name) ->
-      console.log name
-      store = new IDBStore({
-        dbVersion: 1,
-        storeName: "page/#{name}",
-        keyPath: "version",
-        autoIncrement: false,
-        onStoreReady: () ->
-          listPageVersions = (versions) ->
-            for version in versions
-              uri = "page/#{name}/#{version.version}"
-              sitemap.list.push uri
-          store.getAll(listPageVersions)
-          
-        })
-    ###
     fetchPages = (pages) ->
       for page in pages
         console.log page
@@ -126,15 +109,6 @@ repo.updateSitemap = () ->
     repository.getAll(fetchPages)
     console.log 'there'
   )
-      
-  sitemapStore = new IDBStore({
-    dbVersion: 1,
-    storeName: "system/sitemap.json",
-    keyPath: "version",
-    autoIncrement: false,
-    onStoreReady: () ->
-      
-  })
 
 
 repo.updatePage = (json) ->
@@ -152,7 +126,6 @@ repo.updatePage = (json) ->
       keyPath: 'version',
       autoIncrement: false,
       onStoreReady: () ->
-        
         json.version = json.journal[json.journal.length - 1].date
         for version in json.excludes
           page.remove (version)

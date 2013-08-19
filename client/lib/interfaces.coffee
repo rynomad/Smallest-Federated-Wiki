@@ -23,7 +23,6 @@ interestHandler = (face, upcallInfo) ->
       upcallInfo.contentObject = co
       face.transport.send(encodeToBinaryContentObject(upcallInfo.contentObject))
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length])
-  console.log 'iiiiiiiiiiiiiiiiiiiiiiiii', upcallInfo.interest
   interest = upcallInfo.interest
   
   if contentStore == 'page'

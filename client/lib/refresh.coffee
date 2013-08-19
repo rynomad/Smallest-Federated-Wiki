@@ -276,5 +276,4 @@ module.exports = refresh = wiki.refresh = ->
     whenGotten: whenGotten
     whenNotGotten: createGhostPage
     pageInformation: pageInformation
-    
-  sync.getSitemaps()
+

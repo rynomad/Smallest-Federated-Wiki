@@ -3,7 +3,7 @@
 require './interfaces.coffee'
 repository = require './repository.coffee'
 
-module.exports = sync = {}
+
 
 urlToPrefix = (url) ->
   prefix = ''
@@ -15,26 +15,26 @@ urlToPrefix = (url) ->
           prefix = "/#{component}" + prefix
   return prefix
 
-sync.getPagesFromSitemap = (face, sitemap) ->
+getPagesFromSitemap = (face, sitemap) ->
   facePrefix = urlToPrefix(face.host)
   for page in sitemap.list
     nameUri = facePrefix + '/page/' + page
     name = new Name(nameUri)
-    sync.fetchAllOnFace face, 'page', name
+    fetchAllOnFace face, 'page', name
     console.log name
      
 
-sync.fetchAllOnFace = (face, type, name) ->
+fetchAllOnFace = (face, type, name) ->
   interest = new Interest(name)
   template = {}
   exclusions = []
-  recursiveClosure = new ContentClosure(face, name, interest, (data) ->
+  recursiveCallback = (data) ->
     if data?
       console.log "got data ", data
       json = JSON.parse(data)
       if type == 'sitemap'
         console.log json
-        sync.getPagesFromSitemap(face, json)
+        getPagesFromSitemap(face, json)
         string = json.version + ''
         console.log string
         exclusions.push DataUtils.toNumbersFromString(string)
@@ -47,19 +47,25 @@ sync.fetchAllOnFace = (face, type, name) ->
       template.exclude = new Exclude(exclusions)
       console.log exclusions
       interest.exclude = template.exclude
+      recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback)
       face.expressInterest(name, recursiveClosure, template)
     else
       console.log "interest timed out for ", type, name
-  )
+      if type == 'sitemap'
+        recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback)
+        face.expressInterest(name, recursiveClosure, template)
+  
+  recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback)
   face.expressInterest(name, recursiveClosure)
 
-sync.getSitemaps = () ->
+module.exports = sync = () ->
   for face in interfaces.active
     prefix = urlToPrefix(face.host)
     sitemapUri = prefix + "/system/sitemap.json"
     console.log sitemapUri
     sitemapName = new Name(sitemapUri)
-    sync.fetchAllOnFace(face, 'sitemap', sitemapName)
+    fetchAllOnFace(face, 'sitemap', sitemapName)
     
 interfaces.registerFace('localhost')
+sync()
 

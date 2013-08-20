@@ -66,7 +66,10 @@ interfaces.registerFace = (url) ->
       console.log(new Date())
       name = new Name(hostPrefix + '/page/welcome-visitors.json')
       interest = new Interest(name)
+      interest.childSelector = 1
+      template = {}
+      template.childSelector = 1
       closure = new ContentClosure(face, name, interest, repo.updatePage)
-      face.expressInterest(name, closure)
-    setTimeout(express, 5000)
+      face.expressInterest(name, closure, template)
+    setTimeout(express, 300)
   face.onopen = open()

@@ -125,7 +125,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
+},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -519,6 +519,33 @@ $(function() {
 
 
 },{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -622,34 +649,135 @@ active.set = function(el) {
 };
 
 
-},{}],5:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
+},{}],6:[function(require,module,exports){
+var util, wiki;
+
+wiki = require('./wiki.coffee');
+
+module.exports = wiki.util = util = {};
+
+util.symbols = {
+  create: '☼',
+  add: '+',
+  edit: '✎',
+  fork: '⚑',
+  move: '↕',
+  remove: '✕'
+};
+
+util.randomByte = function() {
+  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
+};
+
+util.randomBytes = function(n) {
+  return ((function() {
+    var _i, _results;
+    _results = [];
+    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
+      _results.push(util.randomByte());
     }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
+    return _results;
+  })()).join('');
+};
+
+util.formatTime = function(time) {
+  var am, d, h, mi, mo;
+  d = new Date((time > 10000000000 ? time : time * 1000));
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
+};
+
+util.formatDate = function(msSinceEpoch) {
+  var am, d, day, h, mi, mo, sec, wk, yr;
+  d = new Date(msSinceEpoch);
+  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  day = d.getDate();
+  yr = d.getFullYear();
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
+};
+
+util.formatElapsedTime = function(msSinceEpoch) {
+  var days, hrs, mins, months, msecs, secs, weeks, years;
+  msecs = new Date().getTime() - msSinceEpoch;
+  if ((secs = msecs / 1000) < 2) {
+    return "" + (Math.floor(msecs)) + " milliseconds ago";
   }
-  return synopsis;
+  if ((mins = secs / 60) < 2) {
+    return "" + (Math.floor(secs)) + " seconds ago";
+  }
+  if ((hrs = mins / 60) < 2) {
+    return "" + (Math.floor(mins)) + " minutes ago";
+  }
+  if ((days = hrs / 24) < 2) {
+    return "" + (Math.floor(hrs)) + " hours ago";
+  }
+  if ((weeks = days / 7) < 2) {
+    return "" + (Math.floor(days)) + " days ago";
+  }
+  if ((months = days / 31) < 2) {
+    return "" + (Math.floor(weeks)) + " weeks ago";
+  }
+  if ((years = days / 365) < 2) {
+    return "" + (Math.floor(months)) + " months ago";
+  }
+  return "" + (Math.floor(years)) + " years ago";
+};
+
+util.emptyPage = function() {
+  return {
+    title: 'empty',
+    story: [],
+    journal: []
+  };
+};
+
+util.getSelectionPos = function(jQueryElement) {
+  var el, iePos, sel;
+  el = jQueryElement.get(0);
+  if (document.selection) {
+    el.focus();
+    sel = document.selection.createRange();
+    sel.moveStart('character', -el.value.length);
+    iePos = sel.text.length;
+    return {
+      start: iePos,
+      end: iePos
+    };
+  } else {
+    return {
+      start: el.selectionStart,
+      end: el.selectionEnd
+    };
+  }
+};
+
+util.setCaretPosition = function(jQueryElement, caretPos) {
+  var el, range;
+  el = jQueryElement.get(0);
+  if (el != null) {
+    if (el.createTextRange) {
+      range = el.createTextRange();
+      range.move("character", caretPos);
+      range.select();
+    } else {
+      el.setSelectionRange(caretPos, caretPos);
+    }
+    return el.focus();
+  }
 };
 
 
-},{}],8:[function(require,module,exports){
+},{"./wiki.coffee":2}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -988,148 +1116,23 @@ interfaces.registerFace = function(url) {
     var express;
     console.log(new Date());
     express = function() {
-      var closure, interest, name;
+      var closure, interest, name, template;
       console.log(new Date());
       name = new Name(hostPrefix + '/page/welcome-visitors.json');
       interest = new Interest(name);
+      interest.childSelector = 1;
+      template = {};
+      template.childSelector = 1;
       closure = new ContentClosure(face, name, interest, repo.updatePage);
-      return face.expressInterest(name, closure);
+      return face.expressInterest(name, closure, template);
     };
-    return setTimeout(express, 5000);
+    return setTimeout(express, 300);
   };
   return face.onopen = open();
 };
 
 
-},{"./repository.coffee":14}],6:[function(require,module,exports){
-var util, wiki;
-
-wiki = require('./wiki.coffee');
-
-module.exports = wiki.util = util = {};
-
-util.symbols = {
-  create: '☼',
-  add: '+',
-  edit: '✎',
-  fork: '⚑',
-  move: '↕',
-  remove: '✕'
-};
-
-util.randomByte = function() {
-  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
-};
-
-util.randomBytes = function(n) {
-  return ((function() {
-    var _i, _results;
-    _results = [];
-    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
-      _results.push(util.randomByte());
-    }
-    return _results;
-  })()).join('');
-};
-
-util.formatTime = function(time) {
-  var am, d, h, mi, mo;
-  d = new Date((time > 10000000000 ? time : time * 1000));
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
-};
-
-util.formatDate = function(msSinceEpoch) {
-  var am, d, day, h, mi, mo, sec, wk, yr;
-  d = new Date(msSinceEpoch);
-  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  day = d.getDate();
-  yr = d.getFullYear();
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
-  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
-};
-
-util.formatElapsedTime = function(msSinceEpoch) {
-  var days, hrs, mins, months, msecs, secs, weeks, years;
-  msecs = new Date().getTime() - msSinceEpoch;
-  if ((secs = msecs / 1000) < 2) {
-    return "" + (Math.floor(msecs)) + " milliseconds ago";
-  }
-  if ((mins = secs / 60) < 2) {
-    return "" + (Math.floor(secs)) + " seconds ago";
-  }
-  if ((hrs = mins / 60) < 2) {
-    return "" + (Math.floor(mins)) + " minutes ago";
-  }
-  if ((days = hrs / 24) < 2) {
-    return "" + (Math.floor(hrs)) + " hours ago";
-  }
-  if ((weeks = days / 7) < 2) {
-    return "" + (Math.floor(days)) + " days ago";
-  }
-  if ((months = days / 31) < 2) {
-    return "" + (Math.floor(weeks)) + " weeks ago";
-  }
-  if ((years = days / 365) < 2) {
-    return "" + (Math.floor(months)) + " months ago";
-  }
-  return "" + (Math.floor(years)) + " years ago";
-};
-
-util.emptyPage = function() {
-  return {
-    title: 'empty',
-    story: [],
-    journal: []
-  };
-};
-
-util.getSelectionPos = function(jQueryElement) {
-  var el, iePos, sel;
-  el = jQueryElement.get(0);
-  if (document.selection) {
-    el.focus();
-    sel = document.selection.createRange();
-    sel.moveStart('character', -el.value.length);
-    iePos = sel.text.length;
-    return {
-      start: iePos,
-      end: iePos
-    };
-  } else {
-    return {
-      start: el.selectionStart,
-      end: el.selectionEnd
-    };
-  }
-};
-
-util.setCaretPosition = function(jQueryElement, caretPos) {
-  var el, range;
-  el = jQueryElement.get(0);
-  if (el != null) {
-    if (el.createTextRange) {
-      range = el.createTextRange();
-      range.move("character", caretPos);
-      range.select();
-    } else {
-      el.setSelectionRange(caretPos, caretPos);
-    }
-    return el.focus();
-  }
-};
-
-
-},{"./wiki.coffee":2}],13:[function(require,module,exports){
+},{"./repository.coffee":14}],13:[function(require,module,exports){
 var fetchAllOnFace, getPagesFromSitemap, repository, sync;
 
 require('./interfaces.coffee');

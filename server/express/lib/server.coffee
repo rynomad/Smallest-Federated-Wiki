@@ -37,6 +37,7 @@ Persona = require './persona_auth'
 
 require './wsproxy-tcp.js'
 
+
 # pageFactory can be easily replaced here by requiring your own page handler
 # factory, which gets called with the argv object, and then has get and put
 # methods that accept the same arguments and callbacks.
@@ -252,6 +253,7 @@ module.exports = exports = (argv) ->
     if file is 'runtests'
       return next()
     pagehandler.get file, (e, page, status) ->
+      console.log "RENDERING PAGE ON SERVER"
       if e then return res.e e
       if status is 404
         return res.send page, status
@@ -259,7 +261,7 @@ module.exports = exports = (argv) ->
       	pages: [
       	  page: file
       	  generated: """data-server-generated=true"""
-      	  story: wiki.resolveLinks(render(page))
+      	  story: render(page)
       	]
       	user: req.session.email
       	authenticated: is_authenticated(req)

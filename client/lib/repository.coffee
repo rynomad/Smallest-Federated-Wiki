@@ -121,7 +121,7 @@ repo.sendUpdateNotifier = (json) ->
     closure = new ContentClosure(face, name, interest, callback)
     face.expressInterest(name, closure)
 
-repo.updatePage = (json) ->
+wiki.repo.updatePage = (json) ->
   repository = new IDBStore(pageStoreOpts, () ->
     console.log json.page
     console.log repository

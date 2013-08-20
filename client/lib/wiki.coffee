@@ -64,6 +64,14 @@ wiki.resolveLinks = (string) ->
   renderInternalLink = (match, name) ->
     # spaces become 'slugs', non-alpha-num get removed
     slug = wiki.asSlug name
+    if interfaces != 'server'
+      for face in interfaces.active
+        pageURI = face.prefixURI + '/page/' + slug + '.json'
+        ccnName = new Name(pageURI)
+        interest = new Interest(ccnName)
+        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage)
+        face.expressInterest(ccnName, closure)  
+    
     "<a class=\"internal\" href=\"/#{slug}.html\" data-page-name=\"#{slug}\" title=\"#{wiki.resolutionContext.join(' => ')}\">#{name}</a>"
   string
     .replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink)

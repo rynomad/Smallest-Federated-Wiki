@@ -203,7 +203,7 @@ wiki.buildPage = (data,siteFound,$page) ->
     $page.data('site', siteFound)
   if data.plugin?
     $page.addClass('plugin')
-
+  $page.addClass(wiki.asSlug(data.title))
   #TODO: avoid passing siteFound
   renderPageIntoPageElement( data, $page, siteFound )
 

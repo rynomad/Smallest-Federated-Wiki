@@ -27,3 +27,5 @@ Running the Server:
 *in server/express: node ./bin/server.js
 
 Optional flags: -p (port) default 3000
+
+

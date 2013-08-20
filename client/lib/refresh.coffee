@@ -54,8 +54,6 @@ initDragging = ($page) ->
 initAddButton = ($page) ->
   $page.find(".add-factory").live "click", (evt) ->
     return if $page.hasClass 'ghost'
-    if $page.data('data').journal[$page.data('data').journal.length - 2]?
-      return if ($page.data('data').version - ($page.data('data').journal[$page.data('data').journal.length - 2].date)) <= 500
     evt.preventDefault()
     createFactory($page)
 
@@ -118,7 +116,6 @@ emitTwins = wiki.emitTwins = ($page) ->
   site = window.location.host if site in ['view', 'origin']
   slug = wiki.asSlug page.title
   if (actions = page.journal?.length)? and (viewing = page.version)?
-    viewing = Math.floor(viewing/1000)*1000
     bins = {newer:[], same:[], older:[]}
     # {fed.wiki.org: [{slug: "happenings", title: "Happenings", date: 1358975303000, synopsis: "Changes here ..."}]}
     console.log wiki.neighborhood
@@ -127,7 +124,7 @@ emitTwins = wiki.emitTwins = ($page) ->
         bin = if twin.version > viewing then bins.newer
         else if twin.version < viewing then bins.older
         else bins.same
-        bin.push twin
+        bin.push twin if bin != bins.same
       twins = []
       for legend, bin of bins
         continue unless bin.length

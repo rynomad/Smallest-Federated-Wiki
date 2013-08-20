@@ -777,149 +777,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
-var getScript, plugin, scripts, util, wiki;
-
-util = require('./util.coffee');
-
-wiki = require('./wiki.coffee');
-
-module.exports = plugin = {};
-
-scripts = {};
-
-getScript = wiki.getScript = function(url, callback) {
-  if (callback == null) {
-    callback = function() {};
-  }
-  if (scripts[url] != null) {
-    return callback();
-  } else {
-    return $.getScript(url).done(function() {
-      scripts[url] = true;
-      return callback();
-    }).fail(function() {
-      return callback();
-    });
-  }
-};
-
-plugin.get = wiki.getPlugin = function(name, callback) {
-  if (window.plugins[name]) {
-    return callback(window.plugins[name]);
-  }
-  return getScript("/plugins/" + name + "/" + name + ".js", function() {
-    if (window.plugins[name]) {
-      return callback(window.plugins[name]);
-    }
-    return getScript("/plugins/" + name + ".js", function() {
-      return callback(window.plugins[name]);
-    });
-  });
-};
-
-plugin["do"] = wiki.doPlugin = function(div, item, done) {
-  var error;
-  if (done == null) {
-    done = function() {};
-  }
-  error = function(ex) {
-    var errorElement;
-    errorElement = $("<div />").addClass('error');
-    errorElement.text(ex.toString());
-    return div.append(errorElement);
-  };
-  div.data('pageElement', div.parents(".page"));
-  div.data('item', item);
-  return plugin.get(item.type, function(script) {
-    var err;
-    try {
-      if (script == null) {
-        throw TypeError("Can't find plugin for '" + item.type + "'");
-      }
-      if (script.emit.length > 2) {
-        return script.emit(div, item, function() {
-          script.bind(div, item);
-          return done();
-        });
-      } else {
-        script.emit(div, item);
-        script.bind(div, item);
-        return done();
-      }
-    } catch (_error) {
-      err = _error;
-      wiki.log('plugin error', err);
-      error(err);
-      return done();
-    }
-  });
-};
-
-wiki.registerPlugin = function(pluginName, pluginFn) {
-  return window.plugins[pluginName] = pluginFn($);
-};
-
-window.plugins = {
-  paragraph: {
-    emit: function(div, item) {
-      var text, _i, _len, _ref, _results;
-      _ref = item.text.split(/\n\n+/);
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        text = _ref[_i];
-        if (text.match(/\S/)) {
-          _results.push(div.append("<p>" + (wiki.resolveLinks(text)) + "</p>"));
-        } else {
-          _results.push(void 0);
-        }
-      }
-      return _results;
-    },
-    bind: function(div, item) {
-      return div.dblclick(function() {
-        return wiki.textEditor(div, item, null, true);
-      });
-    }
-  },
-  image: {
-    emit: function(div, item) {
-      item.text || (item.text = item.caption);
-      return div.append("<img class=thumbnail src=\"" + item.url + "\"> <p>" + (wiki.resolveLinks(item.text)) + "</p>");
-    },
-    bind: function(div, item) {
-      div.dblclick(function() {
-        return wiki.textEditor(div, item);
-      });
-      return div.find('img').dblclick(function() {
-        return wiki.dialog(item.text, this);
-      });
-    }
-  },
-  future: {
-    emit: function(div, item) {
-      var info, _i, _len, _ref, _results;
-      div.append("" + item.text + "<br><br><button class=\"create\">create</button> new blank page");
-      if (((info = wiki.neighborhood[location.host]) != null) && (info.sitemap != null)) {
-        _ref = info.sitemap;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          if (item.slug.match(/-template$/)) {
-            _results.push(div.append("<br><button class=\"create\" data-slug=" + item.slug + ">create</button> from " + (wiki.resolveLinks("[[" + item.title + "]]"))));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      }
-    },
-    bind: function(div, item) {}
-  }
-};
-
-
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
+},{"./wiki.coffee":2}],9:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1115,7 +973,149 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":14}],13:[function(require,module,exports){
+},{"./repository.coffee":14}],8:[function(require,module,exports){
+var getScript, plugin, scripts, util, wiki;
+
+util = require('./util.coffee');
+
+wiki = require('./wiki.coffee');
+
+module.exports = plugin = {};
+
+scripts = {};
+
+getScript = wiki.getScript = function(url, callback) {
+  if (callback == null) {
+    callback = function() {};
+  }
+  if (scripts[url] != null) {
+    return callback();
+  } else {
+    return $.getScript(url).done(function() {
+      scripts[url] = true;
+      return callback();
+    }).fail(function() {
+      return callback();
+    });
+  }
+};
+
+plugin.get = wiki.getPlugin = function(name, callback) {
+  if (window.plugins[name]) {
+    return callback(window.plugins[name]);
+  }
+  return getScript("/plugins/" + name + "/" + name + ".js", function() {
+    if (window.plugins[name]) {
+      return callback(window.plugins[name]);
+    }
+    return getScript("/plugins/" + name + ".js", function() {
+      return callback(window.plugins[name]);
+    });
+  });
+};
+
+plugin["do"] = wiki.doPlugin = function(div, item, done) {
+  var error;
+  if (done == null) {
+    done = function() {};
+  }
+  error = function(ex) {
+    var errorElement;
+    errorElement = $("<div />").addClass('error');
+    errorElement.text(ex.toString());
+    return div.append(errorElement);
+  };
+  div.data('pageElement', div.parents(".page"));
+  div.data('item', item);
+  return plugin.get(item.type, function(script) {
+    var err;
+    try {
+      if (script == null) {
+        throw TypeError("Can't find plugin for '" + item.type + "'");
+      }
+      if (script.emit.length > 2) {
+        return script.emit(div, item, function() {
+          script.bind(div, item);
+          return done();
+        });
+      } else {
+        script.emit(div, item);
+        script.bind(div, item);
+        return done();
+      }
+    } catch (_error) {
+      err = _error;
+      wiki.log('plugin error', err);
+      error(err);
+      return done();
+    }
+  });
+};
+
+wiki.registerPlugin = function(pluginName, pluginFn) {
+  return window.plugins[pluginName] = pluginFn($);
+};
+
+window.plugins = {
+  paragraph: {
+    emit: function(div, item) {
+      var text, _i, _len, _ref, _results;
+      _ref = item.text.split(/\n\n+/);
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        text = _ref[_i];
+        if (text.match(/\S/)) {
+          _results.push(div.append("<p>" + (wiki.resolveLinks(text)) + "</p>"));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    },
+    bind: function(div, item) {
+      return div.dblclick(function() {
+        return wiki.textEditor(div, item, null, true);
+      });
+    }
+  },
+  image: {
+    emit: function(div, item) {
+      item.text || (item.text = item.caption);
+      return div.append("<img class=thumbnail src=\"" + item.url + "\"> <p>" + (wiki.resolveLinks(item.text)) + "</p>");
+    },
+    bind: function(div, item) {
+      div.dblclick(function() {
+        return wiki.textEditor(div, item);
+      });
+      return div.find('img').dblclick(function() {
+        return wiki.dialog(item.text, this);
+      });
+    }
+  },
+  future: {
+    emit: function(div, item) {
+      var info, _i, _len, _ref, _results;
+      div.append("" + item.text + "<br><br><button class=\"create\">create</button> new blank page");
+      if (((info = wiki.neighborhood[location.host]) != null) && (info.sitemap != null)) {
+        _ref = info.sitemap;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          if (item.slug.match(/-template$/)) {
+            _results.push(div.append("<br><button class=\"create\" data-slug=" + item.slug + ">create</button> from " + (wiki.resolveLinks("[[" + item.title + "]]"))));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
+      }
+    },
+    bind: function(div, item) {}
+  }
+};
+
+
+},{"./util.coffee":6,"./wiki.coffee":2}],13:[function(require,module,exports){
 var fetchAllOnFace, getPagesFromSitemap, repository, sync;
 
 require('./interfaces.coffee');
@@ -1494,11 +1494,6 @@ initAddButton = function($page) {
     if ($page.hasClass('ghost')) {
       return;
     }
-    if ($page.data('data').journal[$page.data('data').journal.length - 2] != null) {
-      if (($page.data('data').version - ($page.data('data').journal[$page.data('data').journal.length - 2].date)) <= 500) {
-        return;
-      }
-    }
     evt.preventDefault();
     return createFactory($page);
   });
@@ -1576,7 +1571,6 @@ emitTwins = wiki.emitTwins = function($page) {
   }
   slug = wiki.asSlug(page.title);
   if (((actions = (_ref = page.journal) != null ? _ref.length : void 0) != null) && ((viewing = page.version) != null)) {
-    viewing = Math.floor(viewing / 1000) * 1000;
     bins = {
       newer: [],
       same: [],
@@ -1588,7 +1582,9 @@ emitTwins = wiki.emitTwins = function($page) {
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         twin = pages[_i];
         bin = twin.version > viewing ? bins.newer : twin.version < viewing ? bins.older : bins.same;
-        bin.push(twin);
+        if (bin !== bins.same) {
+          bin.push(twin);
+        }
       }
       twins = [];
       for (legend in bins) {
@@ -3274,42 +3270,44 @@ repo.sendUpdateNotifier = function(json) {
 
 wiki.repo.updatePage = function(json) {
   var repository;
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var onError, onSuccess, page;
-    console.log(json.page);
-    console.log(repository);
-    onSuccess = function() {
-      return console.log("success!");
-    };
-    onError = function() {
-      return console.log("already got page!");
-    };
-    repository.put({
-      name: json.page
-    }, onSuccess, onError);
-    return page = new IDBStore({
-      dbVersion: 1,
-      storeName: "page/" + json.page,
-      keyPath: 'version',
-      autoIncrement: false,
-      onStoreReady: function() {
-        var version, _i, _len, _ref;
-        json.version = json.journal[json.journal.length - 1].date;
-        _ref = json.excludes;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          version = _ref[_i];
-          page.remove(version);
+  if (json != null) {
+    return repository = new IDBStore(pageStoreOpts, function() {
+      var onError, onSuccess, page;
+      console.log(json.page);
+      console.log(repository);
+      onSuccess = function() {
+        return console.log("success!");
+      };
+      onError = function() {
+        return console.log("already got page!");
+      };
+      repository.put({
+        name: json.page
+      }, onSuccess, onError);
+      return page = new IDBStore({
+        dbVersion: 1,
+        storeName: "page/" + json.page,
+        keyPath: 'version',
+        autoIncrement: false,
+        onStoreReady: function() {
+          var version, _i, _len, _ref;
+          json.version = json.journal[json.journal.length - 1].date;
+          _ref = json.excludes;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            version = _ref[_i];
+            page.remove(version);
+          }
+          console.log("putting", json);
+          onSuccess = function() {
+            console.log("successfully put ", json);
+            wiki.emitTwins($("." + (wiki.asSlug(json.title))));
+            return repo.sendUpdateNotifier(json);
+          };
+          return page.put(json, onSuccess);
         }
-        console.log("putting", json);
-        onSuccess = function() {
-          console.log("successfully put ", json);
-          wiki.emitTwins($("." + (wiki.asSlug(json.title))));
-          return repo.sendUpdateNotifier(json);
-        };
-        return page.put(json, onSuccess);
-      }
+      });
     });
-  });
+  }
 };
 
 repo.getTwin = function(slug, version, whenGotten) {};

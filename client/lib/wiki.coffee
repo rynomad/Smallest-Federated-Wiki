@@ -69,8 +69,11 @@ wiki.resolveLinks = (string) ->
         pageURI = face.prefixURI + '/page/' + slug + '.json'
         ccnName = new Name(pageURI)
         interest = new Interest(ccnName)
+        interest.childSelector = 1
+        template = {}
+        template.childSelector = interest.childSelector
         closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage)
-        face.expressInterest(ccnName, closure)  
+        face.expressInterest(ccnName, closure, template)  
     
     "<a class=\"internal\" href=\"/#{slug}.html\" data-page-name=\"#{slug}\" title=\"#{wiki.resolutionContext.join(' => ')}\">#{name}</a>"
   string

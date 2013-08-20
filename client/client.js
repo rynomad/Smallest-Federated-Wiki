@@ -101,7 +101,7 @@ wiki.getItem = function(element) {
 wiki.resolveLinks = function(string) {
   var renderInternalLink;
   renderInternalLink = function(match, name) {
-    var ccnName, closure, face, interest, pageURI, slug, _i, _len, _ref;
+    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
     slug = wiki.asSlug(name);
     if (interfaces !== 'server') {
       _ref = interfaces.active;
@@ -110,8 +110,11 @@ wiki.resolveLinks = function(string) {
         pageURI = face.prefixURI + '/page/' + slug + '.json';
         ccnName = new Name(pageURI);
         interest = new Interest(ccnName);
+        interest.childSelector = 1;
+        template = {};
+        template.childSelector = interest.childSelector;
         closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
-        face.expressInterest(ccnName, closure);
+        face.expressInterest(ccnName, closure, template);
       }
     }
     return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
@@ -515,7 +518,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":8,"./plugin.coffee":7,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
+},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
 module.exports = function(page) {
   var p1, p2, synopsis;
   synopsis = page.synopsis;
@@ -646,7 +649,135 @@ active.set = function(el) {
 };
 
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+var util, wiki;
+
+wiki = require('./wiki.coffee');
+
+module.exports = wiki.util = util = {};
+
+util.symbols = {
+  create: '☼',
+  add: '+',
+  edit: '✎',
+  fork: '⚑',
+  move: '↕',
+  remove: '✕'
+};
+
+util.randomByte = function() {
+  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
+};
+
+util.randomBytes = function(n) {
+  return ((function() {
+    var _i, _results;
+    _results = [];
+    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
+      _results.push(util.randomByte());
+    }
+    return _results;
+  })()).join('');
+};
+
+util.formatTime = function(time) {
+  var am, d, h, mi, mo;
+  d = new Date((time > 10000000000 ? time : time * 1000));
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
+};
+
+util.formatDate = function(msSinceEpoch) {
+  var am, d, day, h, mi, mo, sec, wk, yr;
+  d = new Date(msSinceEpoch);
+  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  day = d.getDate();
+  yr = d.getFullYear();
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
+};
+
+util.formatElapsedTime = function(msSinceEpoch) {
+  var days, hrs, mins, months, msecs, secs, weeks, years;
+  msecs = new Date().getTime() - msSinceEpoch;
+  if ((secs = msecs / 1000) < 2) {
+    return "" + (Math.floor(msecs)) + " milliseconds ago";
+  }
+  if ((mins = secs / 60) < 2) {
+    return "" + (Math.floor(secs)) + " seconds ago";
+  }
+  if ((hrs = mins / 60) < 2) {
+    return "" + (Math.floor(mins)) + " minutes ago";
+  }
+  if ((days = hrs / 24) < 2) {
+    return "" + (Math.floor(hrs)) + " hours ago";
+  }
+  if ((weeks = days / 7) < 2) {
+    return "" + (Math.floor(days)) + " days ago";
+  }
+  if ((months = days / 31) < 2) {
+    return "" + (Math.floor(weeks)) + " weeks ago";
+  }
+  if ((years = days / 365) < 2) {
+    return "" + (Math.floor(months)) + " months ago";
+  }
+  return "" + (Math.floor(years)) + " years ago";
+};
+
+util.emptyPage = function() {
+  return {
+    title: 'empty',
+    story: [],
+    journal: []
+  };
+};
+
+util.getSelectionPos = function(jQueryElement) {
+  var el, iePos, sel;
+  el = jQueryElement.get(0);
+  if (document.selection) {
+    el.focus();
+    sel = document.selection.createRange();
+    sel.moveStart('character', -el.value.length);
+    iePos = sel.text.length;
+    return {
+      start: iePos,
+      end: iePos
+    };
+  } else {
+    return {
+      start: el.selectionStart,
+      end: el.selectionEnd
+    };
+  }
+};
+
+util.setCaretPosition = function(jQueryElement, caretPos) {
+  var el, range;
+  el = jQueryElement.get(0);
+  if (el != null) {
+    if (el.createTextRange) {
+      range = el.createTextRange();
+      range.move("character", caretPos);
+      range.select();
+    } else {
+      el.setSelectionRange(caretPos, caretPos);
+    }
+    return el.focus();
+  }
+};
+
+
+},{"./wiki.coffee":2}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -788,135 +919,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],6:[function(require,module,exports){
-var util, wiki;
-
-wiki = require('./wiki.coffee');
-
-module.exports = wiki.util = util = {};
-
-util.symbols = {
-  create: '☼',
-  add: '+',
-  edit: '✎',
-  fork: '⚑',
-  move: '↕',
-  remove: '✕'
-};
-
-util.randomByte = function() {
-  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
-};
-
-util.randomBytes = function(n) {
-  return ((function() {
-    var _i, _results;
-    _results = [];
-    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
-      _results.push(util.randomByte());
-    }
-    return _results;
-  })()).join('');
-};
-
-util.formatTime = function(time) {
-  var am, d, h, mi, mo;
-  d = new Date((time > 10000000000 ? time : time * 1000));
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
-};
-
-util.formatDate = function(msSinceEpoch) {
-  var am, d, day, h, mi, mo, sec, wk, yr;
-  d = new Date(msSinceEpoch);
-  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  day = d.getDate();
-  yr = d.getFullYear();
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
-  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
-};
-
-util.formatElapsedTime = function(msSinceEpoch) {
-  var days, hrs, mins, months, msecs, secs, weeks, years;
-  msecs = new Date().getTime() - msSinceEpoch;
-  if ((secs = msecs / 1000) < 2) {
-    return "" + (Math.floor(msecs)) + " milliseconds ago";
-  }
-  if ((mins = secs / 60) < 2) {
-    return "" + (Math.floor(secs)) + " seconds ago";
-  }
-  if ((hrs = mins / 60) < 2) {
-    return "" + (Math.floor(mins)) + " minutes ago";
-  }
-  if ((days = hrs / 24) < 2) {
-    return "" + (Math.floor(hrs)) + " hours ago";
-  }
-  if ((weeks = days / 7) < 2) {
-    return "" + (Math.floor(days)) + " days ago";
-  }
-  if ((months = days / 31) < 2) {
-    return "" + (Math.floor(weeks)) + " weeks ago";
-  }
-  if ((years = days / 365) < 2) {
-    return "" + (Math.floor(months)) + " months ago";
-  }
-  return "" + (Math.floor(years)) + " years ago";
-};
-
-util.emptyPage = function() {
-  return {
-    title: 'empty',
-    story: [],
-    journal: []
-  };
-};
-
-util.getSelectionPos = function(jQueryElement) {
-  var el, iePos, sel;
-  el = jQueryElement.get(0);
-  if (document.selection) {
-    el.focus();
-    sel = document.selection.createRange();
-    sel.moveStart('character', -el.value.length);
-    iePos = sel.text.length;
-    return {
-      start: iePos,
-      end: iePos
-    };
-  } else {
-    return {
-      start: el.selectionStart,
-      end: el.selectionEnd
-    };
-  }
-};
-
-util.setCaretPosition = function(jQueryElement, caretPos) {
-  var el, range;
-  el = jQueryElement.get(0);
-  if (el != null) {
-    if (el.createTextRange) {
-      range = el.createTextRange();
-      range.move("character", caretPos);
-      range.select();
-    } else {
-      el.setSelectionRange(caretPos, caretPos);
-    }
-    return el.focus();
-  }
-};
-
-
-},{"./wiki.coffee":2}],9:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1212,7 +1215,7 @@ module.exports = sync = function() {
 interfaces.registerFace(location.host.split(':')[0]);
 
 
-},{"./interfaces.coffee":12,"./repository.coffee":14}],8:[function(require,module,exports){
+},{"./interfaces.coffee":12,"./repository.coffee":14}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, sync, util, wiki, _;
 
 _ = require('underscore');
@@ -1789,7 +1792,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":8,"./plugin.coffee":7,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3104,35 +3107,7 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],16:[function(require,module,exports){
-var util;
-
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
-  }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
-};
-
-
-},{"./util.coffee":6}],14:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3423,7 +3398,35 @@ repository = new IDBStore(pageStoreOpts);
 repo.updateSitemap(378248234);
 
 
-},{"./plugin.coffee":7,"./revision.coffee":15}],18:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":15}],16:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+  }
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
+};
+
+
+},{"./util.coffee":6}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

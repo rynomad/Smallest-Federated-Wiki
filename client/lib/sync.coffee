@@ -66,5 +66,5 @@ module.exports = sync = () ->
     sitemapName = new Name(sitemapUri)
     fetchAllOnFace(face, 'sitemap', sitemapName)
     
-interfaces.registerFace('localhost')
+interfaces.registerFace(location.host.split(':')[0])
 

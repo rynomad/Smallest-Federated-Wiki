@@ -125,7 +125,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -519,33 +519,6 @@ $(function() {
 
 
 },{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
-
-
-},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -592,6 +565,33 @@ module.exports = function(owner) {
     e.preventDefault();
     return navigator.id.logout();
   });
+};
+
+
+},{}],5:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
 };
 
 
@@ -3399,9 +3399,8 @@ wiki.repo.updatePageFromPeer = function(json) {
             if ($("." + (wiki.asSlug(json.title))).hasClass("ghost")) {
               console.log("updated ghost page");
               wiki.buildPage(json, null, $("." + (wiki.asSlug(json.title))));
-              $("." + (wiki.asSlug(json.title))).removeClass("ghost");
+              return $("." + (wiki.asSlug(json.title))).removeClass("ghost");
             }
-            return repo.sendUpdateNotifier(json);
           };
           return page.put(json, onSuccess);
         }

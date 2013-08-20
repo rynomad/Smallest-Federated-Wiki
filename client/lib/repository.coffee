@@ -181,7 +181,6 @@ wiki.repo.updatePageFromPeer = (json) ->
               console.log "updated ghost page"
               wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
               $(".#{wiki.asSlug(json.title)}").removeClass("ghost")
-            repo.sendUpdateNotifier(json)
           page.put json, onSuccess
           
       })

@@ -14,6 +14,7 @@ Prerequisites:
 Installation:
 
 *run npm install in server/express
+*run 'npm install node-getopt ws'
 
 for Developers:
 
@@ -22,6 +23,7 @@ for Developers:
 
 Running the Server:
 
+*in bash: 'ccndstart'
 *in server/express: node ./bin/server.js
 
-Optional flags: -p (port)
+Optional flags: -p (port) default 3000

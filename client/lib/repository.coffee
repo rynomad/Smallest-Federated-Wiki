@@ -178,8 +178,9 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
     onStoreReady: () ->
       name = "/localhost/page/#{pageInformation.slug}.json"
       if pageInformation.version?
-        console.log 'requesting specific version'
+        console.log 'requesting specific version', pageInformation
         page.get(pageInformation.version, (page) ->
+          console.log page
           whenGotten(page)
         )
       else
@@ -217,7 +218,6 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
 status = new IDBStore(statusOpts)
 repository = new IDBStore(pageStoreOpts)
 
-repo.updateSitemap(378248234)
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping
 

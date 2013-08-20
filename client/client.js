@@ -4,128 +4,7 @@ window.wiki = require('./lib/wiki.coffee');
 require('./lib/legacy.coffee');
 
 
-},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],2:[function(require,module,exports){
-var createSynopsis, wiki,
-  __slice = [].slice;
-
-createSynopsis = require('./synopsis.coffee');
-
-wiki = {
-  createSynopsis: createSynopsis
-};
-
-wiki.persona = require('./persona.coffee');
-
-wiki.log = function() {
-  var things;
-  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
-    return console.log.apply(console, things);
-  }
-};
-
-wiki.asSlug = function(name) {
-  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
-};
-
-wiki.useLocalStorage = function() {
-  return $(".login").length > 0;
-};
-
-wiki.resolutionContext = [];
-
-wiki.resolveFrom = function(addition, callback) {
-  wiki.resolutionContext.push(addition);
-  try {
-    return callback();
-  } finally {
-    wiki.resolutionContext.pop();
-  }
-};
-
-wiki.getData = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  } else {
-    who = $('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  }
-};
-
-wiki.getDataNodes = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  } else {
-    who = $('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  }
-};
-
-wiki.createPage = function(name, loc, version) {
-  var $page, site;
-  if (loc && loc !== 'view') {
-    site = loc;
-  }
-  console.log(version);
-  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
-  if (version) {
-    $page.data('version', version);
-  }
-  if (site) {
-    $page.find('.page').attr('data-site', site);
-  }
-  console.log($page.find('.page').data('version'));
-  return $page;
-};
-
-wiki.getItem = function(element) {
-  if ($(element).length > 0) {
-    return $(element).data("item") || $(element).data('staticItem');
-  }
-};
-
-wiki.resolveLinks = function(string) {
-  var renderInternalLink;
-  renderInternalLink = function(match, name) {
-    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
-    slug = wiki.asSlug(name);
-    if (interfaces !== 'server') {
-      _ref = interfaces.active;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        face = _ref[_i];
-        pageURI = face.prefixURI + '/page/' + slug + '.json';
-        ccnName = new Name(pageURI);
-        interest = new Interest(ccnName);
-        interest.childSelector = 1;
-        template = {};
-        template.childSelector = interest.childSelector;
-        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
-        face.expressInterest(ccnName, closure, template);
-      }
-    }
-    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
-  };
-  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
-};
-
-module.exports = wiki;
-
-
-},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./lib/legacy.coffee":2,"./lib/wiki.coffee":3}],2:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -518,84 +397,128 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
+},{"./active.coffee":8,"./interfaces.coffee":10,"./pageHandler.coffee":7,"./plugin.coffee":4,"./refresh.coffee":9,"./state.coffee":6,"./sync.coffee":11,"./util.coffee":5,"./wiki.coffee":3}],3:[function(require,module,exports){
+var createSynopsis, wiki,
+  __slice = [].slice;
+
+createSynopsis = require('./synopsis.coffee');
+
+wiki = {
+  createSynopsis: createSynopsis
 };
 
+wiki.persona = require('./persona.coffee');
 
-},{}],5:[function(require,module,exports){
-module.exports = function(owner) {
-  $("#user-email").hide();
-  $("#persona-login-btn").hide();
-  $("#persona-logout-btn").hide();
-  navigator.id.watch({
-    loggedInUser: owner,
-    onlogin: function(assertion) {
-      return $.post("/persona_login", {
-        assertion: assertion
-      }, function(verified) {
-        verified = JSON.parse(verified);
-        if ("okay" === verified.status) {
-          return window.location = "/";
-        } else {
-          navigator.id.logout();
-          if ("wrong-address" === verified.status) {
-            return window.location = "/oops";
-          }
-        }
-      });
-    },
-    onlogout: function() {
-      return $.post("/persona_logout", function() {
-        return window.location = "/";
-      });
-    },
-    onready: function() {
-      if (owner) {
-        $("#user-email").text(owner).show();
-        $("#persona-login-btn").hide();
-        return $("#persona-logout-btn").show();
-      } else {
-        $("#user-email").hide();
-        $("#persona-login-btn").show();
-        return $("#persona-logout-btn").hide();
+wiki.log = function() {
+  var things;
+  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
+    return console.log.apply(console, things);
+  }
+};
+
+wiki.asSlug = function(name) {
+  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
+};
+
+wiki.useLocalStorage = function() {
+  return $(".login").length > 0;
+};
+
+wiki.resolutionContext = [];
+
+wiki.resolveFrom = function(addition, callback) {
+  wiki.resolutionContext.push(addition);
+  try {
+    return callback();
+  } finally {
+    wiki.resolutionContext.pop();
+  }
+};
+
+wiki.getData = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  } else {
+    who = $('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  }
+};
+
+wiki.getDataNodes = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  } else {
+    who = $('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  }
+};
+
+wiki.createPage = function(name, loc, version) {
+  var $page, site;
+  if (loc && loc !== 'view') {
+    site = loc;
+  }
+  console.log(version);
+  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
+  if (version) {
+    $page.data('version', version);
+  }
+  if (site) {
+    $page.find('.page').attr('data-site', site);
+  }
+  console.log($page.find('.page').data('version'));
+  return $page;
+};
+
+wiki.getItem = function(element) {
+  if ($(element).length > 0) {
+    return $(element).data("item") || $(element).data('staticItem');
+  }
+};
+
+wiki.resolveLinks = function(string) {
+  var renderInternalLink;
+  renderInternalLink = function(match, name) {
+    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
+    slug = wiki.asSlug(name);
+    if (interfaces !== 'server') {
+      _ref = interfaces.active;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        face = _ref[_i];
+        pageURI = face.prefixURI + '/page/' + slug + '.json';
+        ccnName = new Name(pageURI);
+        interest = new Interest(ccnName);
+        interest.childSelector = 1;
+        template = {};
+        template.childSelector = interest.childSelector;
+        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
+        face.expressInterest(ccnName, closure, template);
       }
     }
-  });
-  $("#persona-login-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.request({});
-  });
-  return $("#persona-logout-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.logout();
-  });
+    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
+  };
+  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
 };
 
+module.exports = wiki;
 
-},{}],10:[function(require,module,exports){
+
+},{"./persona.coffee":13,"./synopsis.coffee":12}],8:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -649,135 +572,84 @@ active.set = function(el) {
 };
 
 
-},{}],6:[function(require,module,exports){
-var util, wiki;
-
-wiki = require('./wiki.coffee');
-
-module.exports = wiki.util = util = {};
-
-util.symbols = {
-  create: '☼',
-  add: '+',
-  edit: '✎',
-  fork: '⚑',
-  move: '↕',
-  remove: '✕'
-};
-
-util.randomByte = function() {
-  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
-};
-
-util.randomBytes = function(n) {
-  return ((function() {
-    var _i, _results;
-    _results = [];
-    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
-      _results.push(util.randomByte());
+},{}],13:[function(require,module,exports){
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onready: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
     }
-    return _results;
-  })()).join('');
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
 };
 
-util.formatTime = function(time) {
-  var am, d, h, mi, mo;
-  d = new Date((time > 10000000000 ? time : time * 1000));
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
-};
 
-util.formatDate = function(msSinceEpoch) {
-  var am, d, day, h, mi, mo, sec, wk, yr;
-  d = new Date(msSinceEpoch);
-  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  day = d.getDate();
-  yr = d.getFullYear();
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
-  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
-};
-
-util.formatElapsedTime = function(msSinceEpoch) {
-  var days, hrs, mins, months, msecs, secs, weeks, years;
-  msecs = new Date().getTime() - msSinceEpoch;
-  if ((secs = msecs / 1000) < 2) {
-    return "" + (Math.floor(msecs)) + " milliseconds ago";
-  }
-  if ((mins = secs / 60) < 2) {
-    return "" + (Math.floor(secs)) + " seconds ago";
-  }
-  if ((hrs = mins / 60) < 2) {
-    return "" + (Math.floor(mins)) + " minutes ago";
-  }
-  if ((days = hrs / 24) < 2) {
-    return "" + (Math.floor(hrs)) + " hours ago";
-  }
-  if ((weeks = days / 7) < 2) {
-    return "" + (Math.floor(days)) + " days ago";
-  }
-  if ((months = days / 31) < 2) {
-    return "" + (Math.floor(weeks)) + " weeks ago";
-  }
-  if ((years = days / 365) < 2) {
-    return "" + (Math.floor(months)) + " months ago";
-  }
-  return "" + (Math.floor(years)) + " years ago";
-};
-
-util.emptyPage = function() {
-  return {
-    title: 'empty',
-    story: [],
-    journal: []
-  };
-};
-
-util.getSelectionPos = function(jQueryElement) {
-  var el, iePos, sel;
-  el = jQueryElement.get(0);
-  if (document.selection) {
-    el.focus();
-    sel = document.selection.createRange();
-    sel.moveStart('character', -el.value.length);
-    iePos = sel.text.length;
-    return {
-      start: iePos,
-      end: iePos
-    };
+},{}],12:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
   } else {
-    return {
-      start: el.selectionStart,
-      end: el.selectionEnd
-    };
+    synopsis = 'A page with no story.';
   }
-};
-
-util.setCaretPosition = function(jQueryElement, caretPos) {
-  var el, range;
-  el = jQueryElement.get(0);
-  if (el != null) {
-    if (el.createTextRange) {
-      range = el.createTextRange();
-      range.move("character", caretPos);
-      range.select();
-    } else {
-      el.setSelectionRange(caretPos, caretPos);
-    }
-    return el.focus();
-  }
+  return synopsis;
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -919,7 +791,135 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
+},{"./util.coffee":5,"./wiki.coffee":3}],5:[function(require,module,exports){
+var util, wiki;
+
+wiki = require('./wiki.coffee');
+
+module.exports = wiki.util = util = {};
+
+util.symbols = {
+  create: '☼',
+  add: '+',
+  edit: '✎',
+  fork: '⚑',
+  move: '↕',
+  remove: '✕'
+};
+
+util.randomByte = function() {
+  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
+};
+
+util.randomBytes = function(n) {
+  return ((function() {
+    var _i, _results;
+    _results = [];
+    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
+      _results.push(util.randomByte());
+    }
+    return _results;
+  })()).join('');
+};
+
+util.formatTime = function(time) {
+  var am, d, h, mi, mo;
+  d = new Date((time > 10000000000 ? time : time * 1000));
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
+};
+
+util.formatDate = function(msSinceEpoch) {
+  var am, d, day, h, mi, mo, sec, wk, yr;
+  d = new Date(msSinceEpoch);
+  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  day = d.getDate();
+  yr = d.getFullYear();
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
+};
+
+util.formatElapsedTime = function(msSinceEpoch) {
+  var days, hrs, mins, months, msecs, secs, weeks, years;
+  msecs = new Date().getTime() - msSinceEpoch;
+  if ((secs = msecs / 1000) < 2) {
+    return "" + (Math.floor(msecs)) + " milliseconds ago";
+  }
+  if ((mins = secs / 60) < 2) {
+    return "" + (Math.floor(secs)) + " seconds ago";
+  }
+  if ((hrs = mins / 60) < 2) {
+    return "" + (Math.floor(mins)) + " minutes ago";
+  }
+  if ((days = hrs / 24) < 2) {
+    return "" + (Math.floor(hrs)) + " hours ago";
+  }
+  if ((weeks = days / 7) < 2) {
+    return "" + (Math.floor(days)) + " days ago";
+  }
+  if ((months = days / 31) < 2) {
+    return "" + (Math.floor(weeks)) + " weeks ago";
+  }
+  if ((years = days / 365) < 2) {
+    return "" + (Math.floor(months)) + " months ago";
+  }
+  return "" + (Math.floor(years)) + " years ago";
+};
+
+util.emptyPage = function() {
+  return {
+    title: 'empty',
+    story: [],
+    journal: []
+  };
+};
+
+util.getSelectionPos = function(jQueryElement) {
+  var el, iePos, sel;
+  el = jQueryElement.get(0);
+  if (document.selection) {
+    el.focus();
+    sel = document.selection.createRange();
+    sel.moveStart('character', -el.value.length);
+    iePos = sel.text.length;
+    return {
+      start: iePos,
+      end: iePos
+    };
+  } else {
+    return {
+      start: el.selectionStart,
+      end: el.selectionEnd
+    };
+  }
+};
+
+util.setCaretPosition = function(jQueryElement, caretPos) {
+  var el, range;
+  el = jQueryElement.get(0);
+  if (el != null) {
+    if (el.createTextRange) {
+      range = el.createTextRange();
+      range.move("character", caretPos);
+      range.select();
+    } else {
+      el.setSelectionRange(caretPos, caretPos);
+    }
+    return el.focus();
+  }
+};
+
+
+},{"./wiki.coffee":3}],6:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1034,7 +1034,7 @@ state.first = function() {
 };
 
 
-},{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
+},{"./active.coffee":8,"./wiki.coffee":3}],10:[function(require,module,exports){
 var interestHandler, repo;
 
 repo = require('./repository.coffee');
@@ -1078,8 +1078,11 @@ interestHandler = function(face, upcallInfo) {
       closure = new ContentClosure(face, name, interest, repo.updatePage);
       return face.expressInterest(name, closure);
     } else {
-      console.log('getting page');
       pI = {};
+      if ((upcallInfo.interest.name.components.length - face.prefix.components.length) === 3) {
+        console.log("getting page requested with version");
+        pI.version = parseInt(DataUtils.toString(upcallInfo.interest.name.components[upcallInfo.interest.name.components.length - 1]));
+      }
       withJson = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]);
       pI.slug = withJson.slice(0, -5);
       console.log(pI.slug);
@@ -1132,7 +1135,7 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":14}],13:[function(require,module,exports){
+},{"./repository.coffee":14}],11:[function(require,module,exports){
 var fetchAllOnFace, getPagesFromSitemap, repository, sync;
 
 require('./interfaces.coffee');
@@ -1232,7 +1235,7 @@ module.exports = sync = function() {
 interfaces.registerFace(location.host.split(':')[0]);
 
 
-},{"./interfaces.coffee":12,"./repository.coffee":14}],7:[function(require,module,exports){
+},{"./interfaces.coffee":10,"./repository.coffee":14}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, sync, util, wiki, _;
 
 _ = require('underscore');
@@ -1439,7 +1442,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],11:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":6,"./sync.coffee":11,"./util.coffee":5,"./wiki.coffee":3,"underscore":17}],9:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, sync, util, wiki, _,
   __slice = [].slice;
 
@@ -1805,7 +1808,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":4,"./repository.coffee":14,"./state.coffee":6,"./sync.coffee":11,"./util.coffee":5,"./wiki.coffee":3,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3120,7 +3123,35 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+  }
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
+};
+
+
+},{"./util.coffee":5}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3360,8 +3391,9 @@ repo.getPage = function(pageInformation, whenGotten, whenNotGotten) {
       var found, name, onCheckEnd1, onCheckEnd2, onItem1, onItem2;
       name = "/localhost/page/" + pageInformation.slug + ".json";
       if (pageInformation.version != null) {
-        console.log('requesting specific version');
+        console.log('requesting specific version', pageInformation);
         return page.get(pageInformation.version, function(page) {
+          console.log(page);
           return whenGotten(page);
         });
       } else {
@@ -3415,38 +3447,8 @@ status = new IDBStore(statusOpts);
 
 repository = new IDBStore(pageStoreOpts);
 
-repo.updateSitemap(378248234);
 
-
-},{"./plugin.coffee":8,"./revision.coffee":15}],16:[function(require,module,exports){
-var util;
-
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
-  }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
-};
-
-
-},{"./util.coffee":6}],18:[function(require,module,exports){
+},{"./plugin.coffee":4,"./revision.coffee":15}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3597,7 +3599,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
+},{"./active.coffee":8,"./search.coffee":19,"./util.coffee":5,"./wiki.coffee":3,"underscore":17}],19:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3652,5 +3654,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":8,"./util.coffee":5,"./wiki.coffee":3}]},{},[1])
 ;

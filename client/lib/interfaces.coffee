@@ -35,9 +35,10 @@ interestHandler = (face, upcallInfo) ->
       closure = new ContentClosure(face, name, interest, repo.updatePage)
       face.expressInterest(name, closure)     
     else
-      console.log 'getting page'
       pI = {}
-      
+      if (upcallInfo.interest.name.components.length - face.prefix.components.length) == 3 # interest has version number
+        console.log "getting page requested with version"
+        pI.version = parseInt(DataUtils.toString(upcallInfo.interest.name.components[upcallInfo.interest.name.components.length - 1]))
       withJson = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1])
       pI.slug = withJson.slice(0, -5)
       console.log pI.slug

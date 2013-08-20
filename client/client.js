@@ -125,7 +125,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -519,29 +519,52 @@ $(function() {
 
 
 },{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onready: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
     }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
 };
 
 
@@ -600,52 +623,29 @@ active.set = function(el) {
 
 
 },{}],5:[function(require,module,exports){
-module.exports = function(owner) {
-  $("#user-email").hide();
-  $("#persona-login-btn").hide();
-  $("#persona-logout-btn").hide();
-  navigator.id.watch({
-    loggedInUser: owner,
-    onlogin: function(assertion) {
-      return $.post("/persona_login", {
-        assertion: assertion
-      }, function(verified) {
-        verified = JSON.parse(verified);
-        if ("okay" === verified.status) {
-          return window.location = "/";
-        } else {
-          navigator.id.logout();
-          if ("wrong-address" === verified.status) {
-            return window.location = "/oops";
-          }
-        }
-      });
-    },
-    onlogout: function() {
-      return $.post("/persona_logout", function() {
-        return window.location = "/";
-      });
-    },
-    onready: function() {
-      if (owner) {
-        $("#user-email").text(owner).show();
-        $("#persona-login-btn").hide();
-        return $("#persona-logout-btn").show();
-      } else {
-        $("#user-email").hide();
-        $("#persona-login-btn").show();
-        return $("#persona-logout-btn").hide();
-      }
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
     }
-  });
-  $("#persona-login-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.request({});
-  });
-  return $("#persona-logout-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.logout();
-  });
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
 };
 
 
@@ -965,7 +965,7 @@ interestHandler = function(face, upcallInfo) {
 };
 
 interfaces.registerFace = function(url) {
-  var closure, component, face, hostComponents, hostPrefix, interest, name, prefix, _i, _len;
+  var component, face, hostComponents, hostPrefix, open, prefix, _i, _len;
   face = new NDN({
     host: url
   });
@@ -984,10 +984,20 @@ interfaces.registerFace = function(url) {
   interfaces.faces[hostPrefix].registerPrefix(prefix, new interfaceClosure(face, interestHandler));
   interfaces.list.push(hostPrefix);
   interfaces.active.push(interfaces.faces[hostPrefix]);
-  name = new Name(hostPrefix + '/page/welcome-visitors.json');
-  interest = new Interest(name);
-  closure = new ContentClosure(face, name, interest, repo.updatePage);
-  return face.expressInterest(name, closure);
+  open = function() {
+    var express;
+    console.log(new Date());
+    express = function() {
+      var closure, interest, name;
+      console.log(new Date());
+      name = new Name(hostPrefix + '/page/welcome-visitors.json');
+      interest = new Interest(name);
+      closure = new ContentClosure(face, name, interest, repo.updatePage);
+      return face.expressInterest(name, closure);
+    };
+    return setTimeout(express, 5000);
+  };
+  return face.onopen = open();
 };
 
 
@@ -1792,73 +1802,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],15:[function(require,module,exports){
-var create;
-
-create = function(revIndex, data) {
-  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
-  journal = data.journal;
-  revTitle = data.title;
-  revStory = [];
-  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
-  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
-    journalEntry = revJournal[_i];
-    revStoryIds = revStory.map(function(storyItem) {
-      return storyItem.id;
-    });
-    switch (journalEntry.type) {
-      case 'create':
-        if (journalEntry.item.title != null) {
-          revTitle = journalEntry.item.title;
-          revStory = journalEntry.item.story || [];
-        }
-        break;
-      case 'add':
-        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
-          revStory.splice(afterIndex + 1, 0, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'edit':
-        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(editIndex, 1, journalEntry.item);
-        } else {
-          revStory.push(journalEntry.item);
-        }
-        break;
-      case 'move':
-        items = {};
-        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
-          storyItem = revStory[_j];
-          items[storyItem.id] = storyItem;
-        }
-        revStory = [];
-        _ref = journalEntry.order;
-        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
-          itemId = _ref[_k];
-          if (items[itemId] != null) {
-            revStory.push(items[itemId]);
-          }
-        }
-        break;
-      case 'remove':
-        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
-          revStory.splice(removeIndex, 1);
-        }
-    }
-  }
-  return {
-    story: revStory,
-    journal: revJournal,
-    title: revTitle
-  };
-};
-
-exports.create = create;
-
-
-},{}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3107,35 +3051,73 @@ exports.create = create;
 }).call(this);
 
 })()
-},{}],16:[function(require,module,exports){
-var util;
+},{}],15:[function(require,module,exports){
+var create;
 
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+create = function(revIndex, data) {
+  var afterIndex, editIndex, itemId, items, journal, journalEntry, removeIndex, revJournal, revStory, revStoryIds, revTitle, storyItem, _i, _j, _k, _len, _len1, _len2, _ref;
+  journal = data.journal;
+  revTitle = data.title;
+  revStory = [];
+  revJournal = journal.slice(0, +(+revIndex) + 1 || 9e9);
+  for (_i = 0, _len = revJournal.length; _i < _len; _i++) {
+    journalEntry = revJournal[_i];
+    revStoryIds = revStory.map(function(storyItem) {
+      return storyItem.id;
+    });
+    switch (journalEntry.type) {
+      case 'create':
+        if (journalEntry.item.title != null) {
+          revTitle = journalEntry.item.title;
+          revStory = journalEntry.item.story || [];
+        }
+        break;
+      case 'add':
+        if ((afterIndex = revStoryIds.indexOf(journalEntry.after)) !== -1) {
+          revStory.splice(afterIndex + 1, 0, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'edit':
+        if ((editIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(editIndex, 1, journalEntry.item);
+        } else {
+          revStory.push(journalEntry.item);
+        }
+        break;
+      case 'move':
+        items = {};
+        for (_j = 0, _len1 = revStory.length; _j < _len1; _j++) {
+          storyItem = revStory[_j];
+          items[storyItem.id] = storyItem;
+        }
+        revStory = [];
+        _ref = journalEntry.order;
+        for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
+          itemId = _ref[_k];
+          if (items[itemId] != null) {
+            revStory.push(items[itemId]);
+          }
+        }
+        break;
+      case 'remove':
+        if ((removeIndex = revStoryIds.indexOf(journalEntry.id)) !== -1) {
+          revStory.splice(removeIndex, 1);
+        }
+    }
   }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
+  return {
+    story: revStory,
+    journal: revJournal,
+    title: revTitle
+  };
 };
 
+exports.create = create;
 
-},{"./util.coffee":6}],14:[function(require,module,exports){
+
+},{}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3433,7 +3415,35 @@ repository = new IDBStore(pageStoreOpts);
 repo.updateSitemap(378248234);
 
 
-},{"./plugin.coffee":8,"./revision.coffee":15}],18:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":15}],16:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+  }
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
+};
+
+
+},{"./util.coffee":6}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 

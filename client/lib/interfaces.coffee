@@ -60,8 +60,13 @@ interfaces.registerFace = (url) ->
   interfaces.faces[hostPrefix].registerPrefix(prefix, (new interfaceClosure(face, interestHandler)))
   interfaces.list.push(hostPrefix)
   interfaces.active.push(interfaces.faces[hostPrefix])
-  name = new Name(hostPrefix + '/page/welcome-visitors.json')
-  interest = new Interest(name)
-  closure = new ContentClosure(face, name, interest, repo.updatePage)
-  face.expressInterest(name, closure)
-
+  open = () ->
+    console.log(new Date())
+    express = () ->
+      console.log(new Date())
+      name = new Name(hostPrefix + '/page/welcome-visitors.json')
+      interest = new Interest(name)
+      closure = new ContentClosure(face, name, interest, repo.updatePage)
+      face.expressInterest(name, closure)
+    setTimeout(express, 5000)
+  face.onopen = open()

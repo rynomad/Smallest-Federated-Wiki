@@ -154,6 +154,39 @@ wiki.repo.updatePage = (json) ->
       })
     )
 
+wiki.repo.updatePageFromPeer = (json) ->
+  if json?
+    repository = new IDBStore(pageStoreOpts, () ->
+      console.log json.page
+      console.log repository
+      onSuccess = () ->
+        console.log "success!"
+      onError = () ->
+        console.log "already got page!"
+      repository.put({name: json.page}, onSuccess, onError )
+      page = new IDBStore({
+        dbVersion: 1,
+        storeName: "page/#{json.page}",
+        keyPath: 'version',
+        autoIncrement: false,
+        onStoreReady: () ->
+          json.version = json.journal[json.journal.length - 1].date
+          for version in json.excludes
+            page.remove (version)
+          console.log "putting", json
+          onSuccess = () ->
+            console.log "successfully put ", json
+            wiki.emitTwins($(".#{wiki.asSlug(json.title)}"))
+            if $(".#{wiki.asSlug(json.title)}").hasClass("ghost")
+              console.log "updated ghost page"
+              wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
+              $(".#{wiki.asSlug(json.title)}").removeClass("ghost")
+            repo.sendUpdateNotifier(json)
+          page.put json, onSuccess
+          
+      })
+    )
+
 repo.getTwin = (slug, version, whenGotten) ->
 
 

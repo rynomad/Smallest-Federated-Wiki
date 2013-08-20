@@ -32,7 +32,7 @@ interestHandler = (face, upcallInfo) ->
       pageURI = updateURIchunks[0] + updateURIchunks[1]
       name = new Name(pageURI)
       interest = new Interest(name)
-      closure = new ContentClosure(face, name, interest, repo.updatePage)
+      closure = new ContentClosure(face, name, interest, repo.updatePageFromPeer)
       face.expressInterest(name, closure)     
     else
       pI = {}

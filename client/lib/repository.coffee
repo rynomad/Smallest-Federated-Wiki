@@ -2,8 +2,8 @@
 # For Offline mode, we mirror all pages in the browsers IndexedDB using IDBWrapper (https://github.com/jensarps/IDBWrapper)
 
 revision = require './revision.coffee'
-plugin = require('./plugin.coffee')
-module.exports = repo = {}
+plugin = require './plugin.coffee'
+module.exports = wiki.repo = repo = {}
 
 
 pageToContentObject = (json) ->
@@ -59,11 +59,11 @@ statusOpts= {
         repo.favicon = item.dataUrl
         console.log item
       else
-        #console.log "favicon not found, generating..."
+        console.log "222favicon not found, generating..."
         plugin.get 'favicon', (favicon) ->
           favicon.create(status, repo)
     onError = () ->
-      #console.log "favicon not found, generating..."
+      console.log "111favicon not found, generating..."
       plugin.get 'favicon', (favicon) ->
         favicon.create(status, repo)
     status.get(1, onSuccess, onError)
@@ -110,6 +110,16 @@ repo.updateSitemap = () ->
     console.log 'there'
   )
 
+repo.sendUpdateNotifier = (json) ->
+  for face in interfaces.active
+    prefix = wiki.urlToPrefix(face.host)
+    uri = prefix + "/page/update/" + json.page + '/' + json.version
+    name = new Name(uri)
+    interest = new Interest(name)
+    callback = (stuff) ->
+      console.log stuff
+    closure = new ContentClosure(face, name, interest, callback)
+    face.expressInterest(name, closure)
 
 repo.updatePage = (json) ->
   repository = new IDBStore(pageStoreOpts, () ->
@@ -132,7 +142,7 @@ repo.updatePage = (json) ->
         console.log "putting", json
         onSuccess = () ->
           console.log "successfully put ", json
-          repo.updateSitemap()
+          repo.sendUpdateNotifier(json)
         page.put json, onSuccess
         
     })

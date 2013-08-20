@@ -5,7 +5,7 @@ repository = require './repository.coffee'
 
 
 
-urlToPrefix = (url) ->
+wiki.urlToPrefix = (url) ->
   prefix = ''
   hostComponents = url.split('.')
   for component in hostComponents
@@ -60,12 +60,11 @@ fetchAllOnFace = (face, type, name) ->
 
 module.exports = sync = () ->
   for face in interfaces.active
-    prefix = urlToPrefix(face.host)
+    prefix = wiki.urlToPrefix(face.host)
     sitemapUri = prefix + "/system/sitemap.json"
     console.log sitemapUri
     sitemapName = new Name(sitemapUri)
     fetchAllOnFace(face, 'sitemap', sitemapName)
     
 interfaces.registerFace('localhost')
-sync()
 

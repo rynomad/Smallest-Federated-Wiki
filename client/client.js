@@ -111,7 +111,7 @@ wiki.resolveLinks = function(string) {
 module.exports = wiki;
 
 
-},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
+},{"./persona.coffee":5,"./synopsis.coffee":4}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -504,7 +504,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],5:[function(require,module,exports){
+},{"./active.coffee":12,"./interfaces.coffee":11,"./pageHandler.coffee":7,"./plugin.coffee":9,"./refresh.coffee":10,"./state.coffee":8,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
 module.exports = function(page) {
   var p1, p2, synopsis;
   synopsis = page.synopsis;
@@ -531,7 +531,7 @@ module.exports = function(page) {
 };
 
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports = function(owner) {
   $("#user-email").hide();
   $("#persona-login-btn").hide();
@@ -581,7 +581,7 @@ module.exports = function(owner) {
 };
 
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -763,7 +763,7 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{"./wiki.coffee":2}],9:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -905,109 +905,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],13:[function(require,module,exports){
-var fetchAllOnFace, getPagesFromSitemap, repository, sync, urlToPrefix;
-
-require('./interfaces.coffee');
-
-repository = require('./repository.coffee');
-
-urlToPrefix = function(url) {
-  var component, hostComponents, prefix, _i, _len;
-  prefix = '';
-  hostComponents = url.split('.');
-  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-    component = hostComponents[_i];
-    if (component !== 'www') {
-      if (component !== 'http://www') {
-        if (component !== 'http://') {
-          prefix = ("/" + component) + prefix;
-        }
-      }
-    }
-  }
-  return prefix;
-};
-
-getPagesFromSitemap = function(face, sitemap) {
-  var facePrefix, name, nameUri, page, _i, _len, _ref, _results;
-  facePrefix = urlToPrefix(face.host);
-  _ref = sitemap.list;
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    page = _ref[_i];
-    nameUri = facePrefix + '/page/' + page;
-    name = new Name(nameUri);
-    fetchAllOnFace(face, 'page', name);
-    _results.push(console.log(name));
-  }
-  return _results;
-};
-
-fetchAllOnFace = function(face, type, name) {
-  var exclusions, interest, recursiveCallback, recursiveClosure, template;
-  interest = new Interest(name);
-  template = {};
-  exclusions = [];
-  recursiveCallback = function(data) {
-    var entry, json, recursiveClosure, string, _i, _len, _ref;
-    if (data != null) {
-      console.log("got data ", data);
-      json = JSON.parse(data);
-      if (type === 'sitemap') {
-        console.log(json);
-        getPagesFromSitemap(face, json);
-        string = json.version + '';
-        console.log(string);
-        exclusions.push(DataUtils.toNumbersFromString(string));
-      } else if (type === 'page') {
-        console.log('gggggggggggggggggggggggooooooooooooooooooooooooot pppppppppppppppppppppp', json);
-        repository.updatePage(json);
-        _ref = json.excludes;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          entry = _ref[_i];
-          string = entry + '';
-          exclusions.push(DataUtils.toNumbersFromString(string));
-        }
-      }
-      template.exclude = new Exclude(exclusions);
-      console.log(exclusions);
-      interest.exclude = template.exclude;
-      recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
-      return face.expressInterest(name, recursiveClosure, template);
-    } else {
-      console.log("interest timed out for ", type, name);
-      if (type === 'sitemap') {
-        recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
-        return face.expressInterest(name, recursiveClosure, template);
-      }
-    }
-  };
-  recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
-  return face.expressInterest(name, recursiveClosure);
-};
-
-module.exports = sync = function() {
-  var face, prefix, sitemapName, sitemapUri, _i, _len, _ref, _results;
-  _ref = interfaces.active;
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    face = _ref[_i];
-    prefix = urlToPrefix(face.host);
-    sitemapUri = prefix + "/system/sitemap.json";
-    console.log(sitemapUri);
-    sitemapName = new Name(sitemapUri);
-    _results.push(fetchAllOnFace(face, 'sitemap', sitemapName));
-  }
-  return _results;
-};
-
-interfaces.registerFace('localhost');
-
-sync();
-
-
-},{"./interfaces.coffee":12,"./repository.coffee":14}],9:[function(require,module,exports){
+},{"./util.coffee":6,"./wiki.coffee":2}],8:[function(require,module,exports){
 var active, state, wiki,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -1122,7 +1020,7 @@ state.first = function() {
 };
 
 
-},{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
+},{"./active.coffee":12,"./wiki.coffee":2}],11:[function(require,module,exports){
 var interestHandler, repo;
 
 repo = require('./repository.coffee');
@@ -1136,7 +1034,7 @@ interfaces.list = [];
 interfaces.active = [];
 
 interestHandler = function(face, upcallInfo) {
-  var contentStore, interest, pI, sendData, slug, withJson;
+  var closure, contentStore, interest, name, pI, pageURI, sendData, slug, updateURIchunks, withJson;
   sendData = function(data) {
     var co, sent, signed, string;
     signed = new SignedInfo();
@@ -1159,7 +1057,12 @@ interestHandler = function(face, upcallInfo) {
   if (contentStore === 'page') {
     if (DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) === 'update') {
       slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2]);
-      return console.log(face.prefixURI);
+      updateURIchunks = upcallInfo.interest.name.getName().split('/update');
+      pageURI = updateURIchunks[0] + updateURIchunks[1];
+      name = new Name(pageURI);
+      interest = new Interest(name);
+      closure = new ContentClosure(face, name, interest, repo.updatePage);
+      return face.expressInterest(name, closure);
     } else {
       console.log('getting page');
       pI = {};
@@ -1198,7 +1101,107 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":14}],7:[function(require,module,exports){
+},{"./repository.coffee":14}],13:[function(require,module,exports){
+var fetchAllOnFace, getPagesFromSitemap, repository, sync;
+
+require('./interfaces.coffee');
+
+repository = require('./repository.coffee');
+
+wiki.urlToPrefix = function(url) {
+  var component, hostComponents, prefix, _i, _len;
+  prefix = '';
+  hostComponents = url.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      if (component !== 'http://www') {
+        if (component !== 'http://') {
+          prefix = ("/" + component) + prefix;
+        }
+      }
+    }
+  }
+  return prefix;
+};
+
+getPagesFromSitemap = function(face, sitemap) {
+  var facePrefix, name, nameUri, page, _i, _len, _ref, _results;
+  facePrefix = urlToPrefix(face.host);
+  _ref = sitemap.list;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    page = _ref[_i];
+    nameUri = facePrefix + '/page/' + page;
+    name = new Name(nameUri);
+    fetchAllOnFace(face, 'page', name);
+    _results.push(console.log(name));
+  }
+  return _results;
+};
+
+fetchAllOnFace = function(face, type, name) {
+  var exclusions, interest, recursiveCallback, recursiveClosure, template;
+  interest = new Interest(name);
+  template = {};
+  exclusions = [];
+  recursiveCallback = function(data) {
+    var entry, json, recursiveClosure, string, _i, _len, _ref;
+    if (data != null) {
+      console.log("got data ", data);
+      json = JSON.parse(data);
+      if (type === 'sitemap') {
+        console.log(json);
+        getPagesFromSitemap(face, json);
+        string = json.version + '';
+        console.log(string);
+        exclusions.push(DataUtils.toNumbersFromString(string));
+      } else if (type === 'page') {
+        console.log('gggggggggggggggggggggggooooooooooooooooooooooooot pppppppppppppppppppppp', json);
+        repository.updatePage(json);
+        _ref = json.excludes;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          entry = _ref[_i];
+          string = entry + '';
+          exclusions.push(DataUtils.toNumbersFromString(string));
+        }
+      }
+      template.exclude = new Exclude(exclusions);
+      console.log(exclusions);
+      interest.exclude = template.exclude;
+      recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+      return face.expressInterest(name, recursiveClosure, template);
+    } else {
+      console.log("interest timed out for ", type, name);
+      if (type === 'sitemap') {
+        recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+        return face.expressInterest(name, recursiveClosure, template);
+      }
+    }
+  };
+  recursiveClosure = new ContentClosure(face, name, interest, recursiveCallback);
+  return face.expressInterest(name, recursiveClosure);
+};
+
+module.exports = sync = function() {
+  var face, prefix, sitemapName, sitemapUri, _i, _len, _ref, _results;
+  _ref = interfaces.active;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    face = _ref[_i];
+    prefix = wiki.urlToPrefix(face.host);
+    sitemapUri = prefix + "/system/sitemap.json";
+    console.log(sitemapUri);
+    sitemapName = new Name(sitemapUri);
+    _results.push(fetchAllOnFace(face, 'sitemap', sitemapName));
+  }
+  return _results;
+};
+
+interfaces.registerFace('localhost');
+
+
+},{"./interfaces.coffee":11,"./repository.coffee":14}],7:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, sync, util, wiki, _;
 
 _ = require('underscore');
@@ -1405,7 +1408,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],11:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":8,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],10:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, sync, util, wiki, _,
   __slice = [].slice;
 
@@ -1774,7 +1777,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":9,"./repository.coffee":14,"./state.coffee":8,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3126,7 +3129,7 @@ revision = require('./revision.coffee');
 
 plugin = require('./plugin.coffee');
 
-module.exports = repo = {};
+module.exports = wiki.repo = repo = {};
 
 pageToContentObject = function(json) {
   var content, name, signed, slug;
@@ -3190,12 +3193,14 @@ statusOpts = {
         repo.favicon = item.dataUrl;
         return console.log(item);
       } else {
+        console.log("222favicon not found, generating...");
         return plugin.get('favicon', function(favicon) {
           return favicon.create(status, repo);
         });
       }
     };
     onError = function() {
+      console.log("111favicon not found, generating...");
       return plugin.get('favicon', function(favicon) {
         return favicon.create(status, repo);
       });
@@ -3261,6 +3266,25 @@ repo.updateSitemap = function() {
   });
 };
 
+repo.sendUpdateNotifier = function(json) {
+  var callback, closure, face, interest, name, prefix, uri, _i, _len, _ref, _results;
+  _ref = interfaces.active;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    face = _ref[_i];
+    prefix = wiki.urlToPrefix(face.host);
+    uri = prefix + "/page/update/" + json.page + '/' + json.version;
+    name = new Name(uri);
+    interest = new Interest(name);
+    callback = function(stuff) {
+      return console.log(stuff);
+    };
+    closure = new ContentClosure(face, name, interest, callback);
+    _results.push(face.expressInterest(name, closure));
+  }
+  return _results;
+};
+
 repo.updatePage = function(json) {
   var repository;
   return repository = new IDBStore(pageStoreOpts, function() {
@@ -3292,7 +3316,7 @@ repo.updatePage = function(json) {
         console.log("putting", json);
         onSuccess = function() {
           console.log("successfully put ", json);
-          return repo.updateSitemap();
+          return repo.sendUpdateNotifier(json);
         };
         return page.put(json, onSuccess);
       }
@@ -3452,7 +3476,7 @@ repository = new IDBStore(pageStoreOpts);
 repo.updateSitemap(378248234);
 
 
-},{"./plugin.coffee":8,"./revision.coffee":15}],18:[function(require,module,exports){
+},{"./plugin.coffee":9,"./revision.coffee":15}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3603,7 +3627,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
+},{"./active.coffee":12,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3658,5 +3682,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":12,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
 ;

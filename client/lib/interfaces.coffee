@@ -28,7 +28,12 @@ interestHandler = (face, upcallInfo) ->
   if contentStore == 'page'
     if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'update'
       slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2])
-      console.log face.prefixURI
+      updateURIchunks = upcallInfo.interest.name.getName().split('/update')
+      pageURI = updateURIchunks[0] + updateURIchunks[1]
+      name = new Name(pageURI)
+      interest = new Interest(name)
+      closure = new ContentClosure(face, name, interest, repo.updatePage)
+      face.expressInterest(name, closure)     
     else
       console.log 'getting page'
       pI = {}

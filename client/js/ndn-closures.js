@@ -134,7 +134,8 @@ ContentClosure.prototype.upcall = function(kind, upcallInfo) {
         // We are not doing segments, so just finish.
         console.log('contentObject : ',contentObject);
         this.fullcontent = DataUtils.toString(contentObject.content);
-        this.callback(this.fullcontent);
+        var parsed = JSON.parse(this.fullcontent)
+        this.callback(parsed);
 
 
 

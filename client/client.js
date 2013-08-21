@@ -4,128 +4,7 @@ window.wiki = require('./lib/wiki.coffee');
 require('./lib/legacy.coffee');
 
 
-},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],2:[function(require,module,exports){
-var createSynopsis, wiki,
-  __slice = [].slice;
-
-createSynopsis = require('./synopsis.coffee');
-
-wiki = {
-  createSynopsis: createSynopsis
-};
-
-wiki.persona = require('./persona.coffee');
-
-wiki.log = function() {
-  var things;
-  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
-    return console.log.apply(console, things);
-  }
-};
-
-wiki.asSlug = function(name) {
-  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
-};
-
-wiki.useLocalStorage = function() {
-  return $(".login").length > 0;
-};
-
-wiki.resolutionContext = [];
-
-wiki.resolveFrom = function(addition, callback) {
-  wiki.resolutionContext.push(addition);
-  try {
-    return callback();
-  } finally {
-    wiki.resolutionContext.pop();
-  }
-};
-
-wiki.getData = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  } else {
-    who = $('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  }
-};
-
-wiki.getDataNodes = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  } else {
-    who = $('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  }
-};
-
-wiki.createPage = function(name, loc, version) {
-  var $page, site;
-  if (loc && loc !== 'view') {
-    site = loc;
-  }
-  console.log(version);
-  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
-  if (version) {
-    $page.data('version', version);
-  }
-  if (site) {
-    $page.find('.page').attr('data-site', site);
-  }
-  console.log($page.find('.page').data('version'));
-  return $page;
-};
-
-wiki.getItem = function(element) {
-  if ($(element).length > 0) {
-    return $(element).data("item") || $(element).data('staticItem');
-  }
-};
-
-wiki.resolveLinks = function(string) {
-  var renderInternalLink;
-  renderInternalLink = function(match, name) {
-    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
-    slug = wiki.asSlug(name);
-    if (interfaces !== 'server') {
-      _ref = interfaces.active;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        face = _ref[_i];
-        pageURI = face.prefixURI + '/page/' + slug + '.json';
-        ccnName = new Name(pageURI);
-        interest = new Interest(ccnName);
-        interest.childSelector = 1;
-        template = {};
-        template.childSelector = interest.childSelector;
-        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
-        face.expressInterest(ccnName, closure, template);
-      }
-    }
-    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
-  };
-  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
-};
-
-module.exports = wiki;
-
-
-},{"./persona.coffee":4,"./synopsis.coffee":5}],3:[function(require,module,exports){
+},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],3:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, sync, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -518,84 +397,128 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./interfaces.coffee":12,"./pageHandler.coffee":7,"./plugin.coffee":8,"./refresh.coffee":11,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(owner) {
-  $("#user-email").hide();
-  $("#persona-login-btn").hide();
-  $("#persona-logout-btn").hide();
-  navigator.id.watch({
-    loggedInUser: owner,
-    onlogin: function(assertion) {
-      return $.post("/persona_login", {
-        assertion: assertion
-      }, function(verified) {
-        verified = JSON.parse(verified);
-        if ("okay" === verified.status) {
-          return window.location = "/";
-        } else {
-          navigator.id.logout();
-          if ("wrong-address" === verified.status) {
-            return window.location = "/oops";
-          }
-        }
-      });
-    },
-    onlogout: function() {
-      return $.post("/persona_logout", function() {
-        return window.location = "/";
-      });
-    },
-    onready: function() {
-      if (owner) {
-        $("#user-email").text(owner).show();
-        $("#persona-login-btn").hide();
-        return $("#persona-logout-btn").show();
-      } else {
-        $("#user-email").hide();
-        $("#persona-login-btn").show();
-        return $("#persona-logout-btn").hide();
+},{"./active.coffee":8,"./interfaces.coffee":9,"./pageHandler.coffee":5,"./plugin.coffee":6,"./refresh.coffee":10,"./state.coffee":7,"./sync.coffee":11,"./util.coffee":4,"./wiki.coffee":2}],2:[function(require,module,exports){
+var createSynopsis, wiki,
+  __slice = [].slice;
+
+createSynopsis = require('./synopsis.coffee');
+
+wiki = {
+  createSynopsis: createSynopsis
+};
+
+wiki.persona = require('./persona.coffee');
+
+wiki.log = function() {
+  var things;
+  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
+    return console.log.apply(console, things);
+  }
+};
+
+wiki.asSlug = function(name) {
+  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
+};
+
+wiki.useLocalStorage = function() {
+  return $(".login").length > 0;
+};
+
+wiki.resolutionContext = [];
+
+wiki.resolveFrom = function(addition, callback) {
+  wiki.resolutionContext.push(addition);
+  try {
+    return callback();
+  } finally {
+    wiki.resolutionContext.pop();
+  }
+};
+
+wiki.getData = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  } else {
+    who = $('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  }
+};
+
+wiki.getDataNodes = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  } else {
+    who = $('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  }
+};
+
+wiki.createPage = function(name, loc, version) {
+  var $page, site;
+  if (loc && loc !== 'view') {
+    site = loc;
+  }
+  console.log(version);
+  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
+  if (version) {
+    $page.data('version', version);
+  }
+  if (site) {
+    $page.find('.page').attr('data-site', site);
+  }
+  console.log($page.find('.page').data('version'));
+  return $page;
+};
+
+wiki.getItem = function(element) {
+  if ($(element).length > 0) {
+    return $(element).data("item") || $(element).data('staticItem');
+  }
+};
+
+wiki.resolveLinks = function(string) {
+  var renderInternalLink;
+  renderInternalLink = function(match, name) {
+    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
+    slug = wiki.asSlug(name);
+    if (interfaces !== 'server') {
+      _ref = interfaces.active;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        face = _ref[_i];
+        pageURI = face.prefixURI + '/page/' + slug + '.json';
+        ccnName = new Name(pageURI);
+        interest = new Interest(ccnName);
+        interest.childSelector = 1;
+        template = {};
+        template.childSelector = interest.childSelector;
+        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
+        face.expressInterest(ccnName, closure, template);
       }
     }
-  });
-  $("#persona-login-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.request({});
-  });
-  return $("#persona-logout-btn").click(function(e) {
-    e.preventDefault();
-    return navigator.id.logout();
-  });
+    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
+  };
+  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
 };
 
-
-},{}],5:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
-};
+module.exports = wiki;
 
 
-},{}],10:[function(require,module,exports){
+},{"./persona.coffee":13,"./synopsis.coffee":12}],8:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -649,7 +572,84 @@ active.set = function(el) {
 };
 
 
-},{}],6:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],13:[function(require,module,exports){
+module.exports = function(owner) {
+  $("#user-email").hide();
+  $("#persona-login-btn").hide();
+  $("#persona-logout-btn").hide();
+  navigator.id.watch({
+    loggedInUser: owner,
+    onlogin: function(assertion) {
+      return $.post("/persona_login", {
+        assertion: assertion
+      }, function(verified) {
+        verified = JSON.parse(verified);
+        if ("okay" === verified.status) {
+          return window.location = "/";
+        } else {
+          navigator.id.logout();
+          if ("wrong-address" === verified.status) {
+            return window.location = "/oops";
+          }
+        }
+      });
+    },
+    onlogout: function() {
+      return $.post("/persona_logout", function() {
+        return window.location = "/";
+      });
+    },
+    onready: function() {
+      if (owner) {
+        $("#user-email").text(owner).show();
+        $("#persona-login-btn").hide();
+        return $("#persona-logout-btn").show();
+      } else {
+        $("#user-email").hide();
+        $("#persona-login-btn").show();
+        return $("#persona-logout-btn").hide();
+      }
+    }
+  });
+  $("#persona-login-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.request({});
+  });
+  return $("#persona-logout-btn").click(function(e) {
+    e.preventDefault();
+    return navigator.id.logout();
+  });
+};
+
+
+},{}],4:[function(require,module,exports){
 var util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -777,7 +777,122 @@ util.setCaretPosition = function(jQueryElement, caretPos) {
 };
 
 
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
+},{"./wiki.coffee":2}],7:[function(require,module,exports){
+var active, state, wiki,
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+module.exports = state = {};
+
+state.pagesInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return el.id;
+  }));
+};
+
+state.urlPages = function() {
+  var i;
+  return ((function() {
+    var _i, _len, _ref, _results;
+    _ref = $(location).attr('pathname').split('/');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+      i = _ref[_i];
+      _results.push(i);
+    }
+    return _results;
+  })()).slice(1);
+};
+
+state.locsInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return $(el).data('site') || 'view';
+  }));
+};
+
+state.urlLocs = function() {
+  var j, _i, _len, _ref, _results;
+  _ref = $(location).attr('pathname').split('/').slice(1);
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+    j = _ref[_i];
+    _results.push(j);
+  }
+  return _results;
+};
+
+state.setUrl = function() {
+  var idx, locs, page, pages, url, _ref;
+  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+  if (history && history.pushState) {
+    locs = state.locsInDom();
+    pages = state.pagesInDom();
+    url = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
+        page = pages[idx];
+        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
+      }
+      return _results;
+    })()).join('');
+    if (url !== $(location).attr('pathname')) {
+      return history.pushState(null, null, url);
+    }
+  }
+};
+
+state.show = function(e) {
+  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
+  oldPages = state.pagesInDom();
+  newPages = state.urlPages();
+  oldLocs = state.locsInDom();
+  newLocs = state.urlLocs();
+  if (!location.pathname || location.pathname === '/') {
+    return;
+  }
+  previous = $('.page').eq(0);
+  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
+    name = newPages[idx];
+    if (name !== oldPages[idx]) {
+      old = $('.page').eq(idx);
+      if (old) {
+        old.remove();
+      }
+      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
+    }
+    previous = $('.page').eq(idx);
+  }
+  previous.nextAll().remove();
+  active.set($('.page').last());
+  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+};
+
+state.first = function() {
+  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
+  state.setUrl();
+  firstUrlPages = state.urlPages();
+  firstUrlLocs = state.urlLocs();
+  oldPages = state.pagesInDom();
+  _results = [];
+  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
+    urlPage = firstUrlPages[idx];
+    if (__indexOf.call(oldPages, urlPage) < 0) {
+      if (urlPage !== '') {
+        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
+      } else {
+        _results.push(void 0);
+      }
+    }
+  }
+  return _results;
+};
+
+
+},{"./active.coffee":8,"./wiki.coffee":2}],6:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -919,122 +1034,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":6,"./wiki.coffee":2}],9:[function(require,module,exports){
-var active, state, wiki,
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-module.exports = state = {};
-
-state.pagesInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return el.id;
-  }));
-};
-
-state.urlPages = function() {
-  var i;
-  return ((function() {
-    var _i, _len, _ref, _results;
-    _ref = $(location).attr('pathname').split('/');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-      i = _ref[_i];
-      _results.push(i);
-    }
-    return _results;
-  })()).slice(1);
-};
-
-state.locsInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return $(el).data('site') || 'view';
-  }));
-};
-
-state.urlLocs = function() {
-  var j, _i, _len, _ref, _results;
-  _ref = $(location).attr('pathname').split('/').slice(1);
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-    j = _ref[_i];
-    _results.push(j);
-  }
-  return _results;
-};
-
-state.setUrl = function() {
-  var idx, locs, page, pages, url, _ref;
-  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-  if (history && history.pushState) {
-    locs = state.locsInDom();
-    pages = state.pagesInDom();
-    url = ((function() {
-      var _i, _len, _results;
-      _results = [];
-      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
-        page = pages[idx];
-        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
-      }
-      return _results;
-    })()).join('');
-    if (url !== $(location).attr('pathname')) {
-      return history.pushState(null, null, url);
-    }
-  }
-};
-
-state.show = function(e) {
-  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
-  oldPages = state.pagesInDom();
-  newPages = state.urlPages();
-  oldLocs = state.locsInDom();
-  newLocs = state.urlLocs();
-  if (!location.pathname || location.pathname === '/') {
-    return;
-  }
-  previous = $('.page').eq(0);
-  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
-    name = newPages[idx];
-    if (name !== oldPages[idx]) {
-      old = $('.page').eq(idx);
-      if (old) {
-        old.remove();
-      }
-      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
-    }
-    previous = $('.page').eq(idx);
-  }
-  previous.nextAll().remove();
-  active.set($('.page').last());
-  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-};
-
-state.first = function() {
-  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
-  state.setUrl();
-  firstUrlPages = state.urlPages();
-  firstUrlLocs = state.urlLocs();
-  oldPages = state.pagesInDom();
-  _results = [];
-  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
-    urlPage = firstUrlPages[idx];
-    if (__indexOf.call(oldPages, urlPage) < 0) {
-      if (urlPage !== '') {
-        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
-      } else {
-        _results.push(void 0);
-      }
-    }
-  }
-  return _results;
-};
-
-
-},{"./active.coffee":10,"./wiki.coffee":2}],12:[function(require,module,exports){
+},{"./util.coffee":4,"./wiki.coffee":2}],9:[function(require,module,exports){
 var interestHandler, repo;
 
 repo = require('./repository.coffee');
@@ -1069,7 +1069,12 @@ interestHandler = function(face, upcallInfo) {
   contentStore = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length]);
   interest = upcallInfo.interest;
   if (contentStore === 'page') {
+    pI = {};
     if (DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) === 'update') {
+      withJson = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2]);
+      pI.slug = withJson.slice(0, -5);
+      console.log(pI.slug);
+      repo.getPage(pI, sendData);
       slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2]);
       updateURIchunks = upcallInfo.interest.name.getName().split('/update');
       pageURI = updateURIchunks[0] + updateURIchunks[1];
@@ -1135,7 +1140,7 @@ interfaces.registerFace = function(url) {
 };
 
 
-},{"./repository.coffee":14}],13:[function(require,module,exports){
+},{"./repository.coffee":14}],11:[function(require,module,exports){
 var fetchAllOnFace, getPagesFromSitemap, repository, sync;
 
 require('./interfaces.coffee');
@@ -1235,7 +1240,7 @@ module.exports = sync = function() {
 interfaces.registerFace(location.host.split(':')[0]);
 
 
-},{"./interfaces.coffee":12,"./repository.coffee":14}],7:[function(require,module,exports){
+},{"./interfaces.coffee":9,"./repository.coffee":14}],5:[function(require,module,exports){
 var addToJournal, pageFromLocalStorage, pageHandler, pushToLocal, pushToServer, recursiveGet, repository, revision, state, sync, util, wiki, _;
 
 _ = require('underscore');
@@ -1442,7 +1447,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],11:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./repository.coffee":14,"./revision.coffee":15,"./state.coffee":7,"./sync.coffee":11,"./util.coffee":4,"./wiki.coffee":2,"underscore":17}],10:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, sync, util, wiki, _,
   __slice = [].slice;
 
@@ -1808,7 +1813,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":7,"./plugin.coffee":8,"./repository.coffee":14,"./state.coffee":9,"./sync.coffee":13,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
+},{"./addToJournal.coffee":16,"./neighborhood.coffee":18,"./pageHandler.coffee":5,"./plugin.coffee":6,"./repository.coffee":14,"./state.coffee":7,"./sync.coffee":11,"./util.coffee":4,"./wiki.coffee":2,"underscore":17}],17:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3151,7 +3156,7 @@ module.exports = function(journalElement, action) {
 };
 
 
-},{"./util.coffee":6}],14:[function(require,module,exports){
+},{"./util.coffee":4}],14:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3185,24 +3190,7 @@ pageStoreOpts = {
       name: "name",
       unique: true
     }
-  ],
-  onStoreReady: function() {
-    repo.ready = true;
-    return $.get('/system/sitemap.json', function(sitemap) {
-      /*    
-      status.get(1, (favicon) ->
-        for entry in sitemap
-          $.get("/#{entry.slug}.json", (json) ->
-            json.favicon = favicon.dataUrl
-            content = json
-            content.page = wiki.asSlug(json.title) + '.json'
-            repo.update(json)
-          )
-      )
-      */
-
-    });
-  }
+  ]
 };
 
 statusOpts = {
@@ -3259,20 +3247,14 @@ repo.getSitemap = function(whenGotten) {
 };
 
 repo.updateSitemap = function() {
-  var repository, sitemap;
-  sitemap = {};
-  sitemap.list = [];
-  sitemap.version = (new Date()).getTime();
-  return repository = new IDBStore(pageStoreOpts, function() {
-    var fetchPages;
-    fetchPages = function(pages) {
-      var page, sitemaps, _i, _len;
-      for (_i = 0, _len = pages.length; _i < _len; _i++) {
-        page = pages[_i];
-        console.log(page);
-        sitemap.list.push(page.name);
-      }
-      return sitemaps = new IDBStore({
+  var fetchPages;
+  return fetchPages = function(pages) {
+    var page, sitemaps, _i, _len;
+    for (_i = 0, _len = pages.length; _i < _len; _i++) {
+      page = pages[_i];
+      console.log(page);
+      sitemap.list.push(page.name);
+      sitemaps = new IDBStore({
         dbVersion: 1,
         storeName: "system/sitemap.json",
         keyPath: "version",
@@ -3291,14 +3273,60 @@ repo.updateSitemap = function() {
           });
         }
       });
-    };
+    }
     repository.getAll(fetchPages);
     return console.log('there');
-  });
+  };
+};
+
+wiki.repo.updatePageFromPeer = function(json) {
+  var repository;
+  if (json != null) {
+    return repository = new IDBStore(pageStoreOpts, function() {
+      var onError, onSuccess, page;
+      console.log(json.page);
+      console.log(repository);
+      onSuccess = function() {
+        return console.log("success!");
+      };
+      onError = function() {
+        return console.log("already got page!");
+      };
+      repository.put({
+        name: json.page
+      }, onSuccess, onError);
+      return page = new IDBStore({
+        dbVersion: 1,
+        storeName: "page/" + json.page,
+        keyPath: 'version',
+        autoIncrement: false,
+        onStoreReady: function() {
+          var version, _i, _len, _ref;
+          json.version = json.journal[json.journal.length - 1].date;
+          _ref = json.excludes;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            version = _ref[_i];
+            page.remove(version);
+          }
+          console.log("putting", json);
+          onSuccess = function() {
+            console.log("successfully put ", json);
+            wiki.emitTwins($("#" + (wiki.asSlug(json.title))));
+            if ($("." + (wiki.asSlug(json.title))).hasClass("ghost")) {
+              console.log("updated ghost page");
+              wiki.buildPage(json, null, $("." + (wiki.asSlug(json.title))));
+              return $("." + (wiki.asSlug(json.title))).removeClass("ghost");
+            }
+          };
+          return page.put(json, onSuccess);
+        }
+      });
+    });
+  }
 };
 
 repo.sendUpdateNotifier = function(json) {
-  var callback, closure, face, interest, name, prefix, uri, _i, _len, _ref, _results;
+  var closure, face, interest, name, prefix, template, uri, _i, _len, _ref, _results;
   _ref = interfaces.active;
   _results = [];
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -3306,12 +3334,12 @@ repo.sendUpdateNotifier = function(json) {
     prefix = wiki.urlToPrefix(face.host);
     uri = prefix + "/page/update/" + json.page + '/' + json.version;
     name = new Name(uri);
+    template = {};
+    template.childSelector = 1;
     interest = new Interest(name);
-    callback = function(stuff) {
-      return console.log(stuff);
-    };
-    closure = new ContentClosure(face, name, interest, callback);
-    _results.push(face.expressInterest(name, closure));
+    interest.childSelector = 1;
+    closure = new ContentClosure(face, name, interest, wiki.repo.updatePageFromPeer);
+    _results.push(face.expressInterest(name, closure, template));
   }
   return _results;
 };
@@ -3348,7 +3376,7 @@ wiki.repo.updatePage = function(json) {
           console.log("putting", json);
           onSuccess = function() {
             console.log("successfully put ", json);
-            wiki.emitTwins($("." + (wiki.asSlug(json.title))));
+            wiki.emitTwins($("#" + (wiki.asSlug(json.title))));
             if ($("." + (wiki.asSlug(json.title))).hasClass("ghost")) {
               console.log("updated ghost page");
               wiki.buildPage(json, null, $("." + (wiki.asSlug(json.title))));
@@ -3362,54 +3390,6 @@ wiki.repo.updatePage = function(json) {
     });
   }
 };
-
-wiki.repo.updatePageFromPeer = function(json) {
-  var repository;
-  if (json != null) {
-    return repository = new IDBStore(pageStoreOpts, function() {
-      var onError, onSuccess, page;
-      console.log(json.page);
-      console.log(repository);
-      onSuccess = function() {
-        return console.log("success!");
-      };
-      onError = function() {
-        return console.log("already got page!");
-      };
-      repository.put({
-        name: json.page
-      }, onSuccess, onError);
-      return page = new IDBStore({
-        dbVersion: 1,
-        storeName: "page/" + json.page,
-        keyPath: 'version',
-        autoIncrement: false,
-        onStoreReady: function() {
-          var version, _i, _len, _ref;
-          json.version = json.journal[json.journal.length - 1].date;
-          _ref = json.excludes;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            version = _ref[_i];
-            page.remove(version);
-          }
-          console.log("putting", json);
-          onSuccess = function() {
-            console.log("successfully put ", json);
-            wiki.emitTwins($("." + (wiki.asSlug(json.title))));
-            if ($("." + (wiki.asSlug(json.title))).hasClass("ghost")) {
-              console.log("updated ghost page");
-              wiki.buildPage(json, null, $("." + (wiki.asSlug(json.title))));
-              return $("." + (wiki.asSlug(json.title))).removeClass("ghost");
-            }
-          };
-          return page.put(json, onSuccess);
-        }
-      });
-    });
-  }
-};
-
-repo.getTwin = function(slug, version, whenGotten) {};
 
 repo.getTwins = function(slug, callback) {
   var twins;
@@ -3491,10 +3471,25 @@ repo.getPage = function(pageInformation, whenGotten, whenNotGotten) {
 
 status = new IDBStore(statusOpts);
 
-repository = new IDBStore(pageStoreOpts);
+repository = new IDBStore(pageStoreOpts, function() {
+  var fetchPages;
+  fetchPages = function(pages) {
+    var pI, page, _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = pages.length; _i < _len; _i++) {
+      page = pages[_i];
+      pI = {};
+      pI.slug = page.name.slice(0, -5);
+      console.log(pI);
+      _results.push(repo.getPage(pI, repo.sendUpdateNotifier));
+    }
+    return _results;
+  };
+  return repository.getAll(fetchPages);
+});
 
 
-},{"./plugin.coffee":8,"./revision.coffee":15}],18:[function(require,module,exports){
+},{"./plugin.coffee":6,"./revision.coffee":15}],18:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3645,7 +3640,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":10,"./search.coffee":19,"./util.coffee":6,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
+},{"./active.coffee":8,"./search.coffee":19,"./util.coffee":4,"./wiki.coffee":2,"underscore":17}],19:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3700,5 +3695,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":10,"./util.coffee":6,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":8,"./util.coffee":4,"./wiki.coffee":2}]},{},[1])
 ;

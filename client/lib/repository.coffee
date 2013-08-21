@@ -27,22 +27,7 @@ pageStoreOpts = {
   autoIncrement: true,
   indexes: [
     {name: "name", unique: true}
-  ],
-  onStoreReady: () ->
-    repo.ready = true
-    $.get('/system/sitemap.json', (sitemap) -> 
-      ###    
-      status.get(1, (favicon) ->
-        for entry in sitemap
-          $.get("/#{entry.slug}.json", (json) ->
-            json.favicon = favicon.dataUrl
-            content = json
-            content.page = wiki.asSlug(json.title) + '.json'
-            repo.update(json)
-          )
-      )
-      ###
-    )
+  ]
 }
 
 statusOpts= {
@@ -82,15 +67,11 @@ repo.getSitemap = (whenGotten) ->
   })
 
 repo.updateSitemap = () ->
-  sitemap = {}
-  sitemap.list = []
-  sitemap.version = (new Date()).getTime()
-  
-  repository = new IDBStore(pageStoreOpts, () ->
-    fetchPages = (pages) ->
-      for page in pages
-        console.log page
-        sitemap.list.push(page.name)
+  fetchPages = (pages) ->
+    for page in pages
+      console.log page
+      sitemap.list.push(page.name)
+    
       sitemaps = new IDBStore({
         dbVersion: 1,
         storeName: "system/sitemap.json",
@@ -108,51 +89,7 @@ repo.updateSitemap = () ->
       })
     repository.getAll(fetchPages)
     console.log 'there'
-  )
-
-repo.sendUpdateNotifier = (json) ->
-  for face in interfaces.active
-    prefix = wiki.urlToPrefix(face.host)
-    uri = prefix + "/page/update/" + json.page + '/' + json.version
-    name = new Name(uri)
-    interest = new Interest(name)
-    callback = (stuff) ->
-      console.log stuff
-    closure = new ContentClosure(face, name, interest, callback)
-    face.expressInterest(name, closure)
-
-wiki.repo.updatePage = (json) ->
-  if json?
-    repository = new IDBStore(pageStoreOpts, () ->
-      console.log json.page
-      console.log repository
-      onSuccess = () ->
-        console.log "success!"
-      onError = () ->
-        console.log "already got page!"
-      repository.put({name: json.page}, onSuccess, onError )
-      page = new IDBStore({
-        dbVersion: 1,
-        storeName: "page/#{json.page}",
-        keyPath: 'version',
-        autoIncrement: false,
-        onStoreReady: () ->
-          json.version = json.journal[json.journal.length - 1].date
-          for version in json.excludes
-            page.remove (version)
-          console.log "putting", json
-          onSuccess = () ->
-            console.log "successfully put ", json
-            wiki.emitTwins($(".#{wiki.asSlug(json.title)}"))
-            if $(".#{wiki.asSlug(json.title)}").hasClass("ghost")
-              console.log "updated ghost page"
-              wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
-              $(".#{wiki.asSlug(json.title)}").removeClass("ghost")
-            repo.sendUpdateNotifier(json)
-          page.put json, onSuccess
-          
-      })
-    )
+  
 
 wiki.repo.updatePageFromPeer = (json) ->
   if json?
@@ -176,7 +113,7 @@ wiki.repo.updatePageFromPeer = (json) ->
           console.log "putting", json
           onSuccess = () ->
             console.log "successfully put ", json
-            wiki.emitTwins($(".#{wiki.asSlug(json.title)}"))
+            wiki.emitTwins($("##{wiki.asSlug(json.title)}"))
             if $(".#{wiki.asSlug(json.title)}").hasClass("ghost")
               console.log "updated ghost page"
               wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
@@ -186,7 +123,51 @@ wiki.repo.updatePageFromPeer = (json) ->
       })
     )
 
-repo.getTwin = (slug, version, whenGotten) ->
+
+repo.sendUpdateNotifier = (json) ->
+  for face in interfaces.active
+    prefix = wiki.urlToPrefix(face.host)
+    uri = prefix + "/page/update/" + json.page + '/' + json.version
+    name = new Name(uri)
+    template = {}
+    template.childSelector = 1
+    interest = new Interest(name)
+    interest.childSelector = 1
+    closure = new ContentClosure(face, name, interest, wiki.repo.updatePageFromPeer)
+    face.expressInterest(name, closure, template)
+
+wiki.repo.updatePage = (json) ->
+  if json?
+    repository = new IDBStore(pageStoreOpts, () ->
+      console.log json.page
+      console.log repository
+      onSuccess = () ->
+        console.log "success!"
+      onError = () ->
+        console.log "already got page!"
+      repository.put({name: json.page}, onSuccess, onError )
+      page = new IDBStore({
+        dbVersion: 1,
+        storeName: "page/#{json.page}",
+        keyPath: 'version',
+        autoIncrement: false,
+        onStoreReady: () ->
+          json.version = json.journal[json.journal.length - 1].date
+          for version in json.excludes
+            page.remove (version)
+          console.log "putting", json
+          onSuccess = () ->
+            console.log "successfully put ", json
+            wiki.emitTwins($("##{wiki.asSlug(json.title)}"))
+            if $(".#{wiki.asSlug(json.title)}").hasClass("ghost")
+              console.log "updated ghost page"
+              wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
+              $(".#{wiki.asSlug(json.title)}").removeClass("ghost")
+            repo.sendUpdateNotifier(json)
+          page.put json, onSuccess
+          
+      })
+    )
 
 
 repo.getTwins = (slug, callback) ->
@@ -248,8 +229,15 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
 
 
 status = new IDBStore(statusOpts)
-repository = new IDBStore(pageStoreOpts)
-
+repository = new IDBStore(pageStoreOpts, () ->
+  fetchPages = (pages) ->
+    for page in pages
+      pI = {}
+      pI.slug = page.name.slice(0, -5)
+      console.log pI
+      repo.getPage(pI, repo.sendUpdateNotifier)
+  repository.getAll(fetchPages)
+)
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping
 

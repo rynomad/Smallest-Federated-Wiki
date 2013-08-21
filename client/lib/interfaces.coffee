@@ -26,7 +26,12 @@ interestHandler = (face, upcallInfo) ->
   interest = upcallInfo.interest
   
   if contentStore == 'page'
+    pI = {}
     if DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 1]) == 'update'
+      withJson = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2])
+      pI.slug = withJson.slice(0, -5)
+      console.log pI.slug
+      repo.getPage(pI , sendData)
       slug = DataUtils.toString(upcallInfo.interest.name.components[face.prefix.components.length + 2])
       updateURIchunks = upcallInfo.interest.name.getName().split('/update')
       pageURI = updateURIchunks[0] + updateURIchunks[1]

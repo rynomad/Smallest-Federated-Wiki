@@ -79,3 +79,7 @@ interfaces.registerFace = (url) ->
       face.expressInterest(name, closure, template)
     setTimeout(express, 300)
   face.onopen = open()
+
+if navigator.onLine == true
+  console.log "online: registering Face at ", location.host.split(':')[0]
+  interfaces.registerFace(location.host.split(':')[0])

@@ -11,6 +11,16 @@ wiki.asSlug = (name) ->
 
 wiki.useLocalStorage = ->
   $(".login").length > 0
+  
+wiki.urlToPrefix = (url) ->
+  prefix = ''
+  hostComponents = url.split('.')
+  for component in hostComponents
+    if component != 'www'
+      if component != 'http://www'
+        if component != 'http://'
+          prefix = "/#{component}" + prefix
+  return prefix
 
 wiki.resolutionContext = []
 
@@ -62,17 +72,18 @@ wiki.resolveLinks = (string) ->
   renderInternalLink = (match, name) ->
     # spaces become 'slugs', non-alpha-num get removed
     slug = wiki.asSlug name
-    if interfaces != 'server'
-      for face in interfaces.active
-        pageURI = face.prefixURI + '/page/' + slug + '.json'
-        ccnName = new Name(pageURI)
-        interest = new Interest(ccnName)
-        interest.childSelector = 1
-        template = {}
-        template.childSelector = interest.childSelector
-        closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage)
-        face.expressInterest(ccnName, closure, template)  
-    
+    if navigator.onLine == true
+      console.log "online: retrieving pages from rendered links"
+      if interfaces != 'server'
+        for face in interfaces.active
+          pageURI = face.prefixURI + '/page/' + slug + '.json'
+          ccnName = new Name(pageURI)
+          interest = new Interest(ccnName)
+          interest.childSelector = 1
+          template = {}
+          template.childSelector = interest.childSelector
+          closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage)
+          face.expressInterest(ccnName, closure, template)    
     "<a class=\"internal\" href=\"/#{slug}.html\" data-page-name=\"#{slug}\" title=\"#{wiki.resolutionContext.join(' => ')}\">#{name}</a>"
   string
     .replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink)

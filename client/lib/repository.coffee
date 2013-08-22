@@ -155,15 +155,18 @@ wiki.repo.updatePage = (json) ->
           json.version = json.journal[json.journal.length - 1].date
           for version in json.excludes
             page.remove (version)
-          console.log "putting", json
+          console.log "updating ", json.title
           onSuccess = () ->
-            console.log "successfully put ", json
             wiki.emitTwins($("##{wiki.asSlug(json.title)}"))
             if $(".#{wiki.asSlug(json.title)}").hasClass("ghost")
               console.log "updated ghost page"
               wiki.buildPage(json, null, $(".#{wiki.asSlug(json.title)}"))
               $(".#{wiki.asSlug(json.title)}").removeClass("ghost")
-            repo.sendUpdateNotifier(json)
+            if navigator.onLine == true
+              console.log "online: successfully updated ", json.title, ", sending update notifier."
+              repo.sendUpdateNotifier(json)
+            else
+              console.log "offline: successfully updated ", json.title, " locally."
           page.put json, onSuccess
           
       })
@@ -230,13 +233,17 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
 
 status = new IDBStore(statusOpts)
 repository = new IDBStore(pageStoreOpts, () ->
-  fetchPages = (pages) ->
-    for page in pages
-      pI = {}
-      pI.slug = page.name.slice(0, -5)
-      console.log pI
-      repo.getPage(pI, repo.sendUpdateNotifier)
-  repository.getAll(fetchPages)
+  if navigator.onLine == true
+    console.log "online: announcing pages"
+    fetchPages = (pages) ->
+      for page in pages
+        pI = {}
+        pI.slug = page.name.slice(0, -5)
+        console.log pI      
+        repo.getPage(pI, repo.sendUpdateNotifier)
+    repository.getAll(fetchPages)
+  else
+    console.log "offline: repository index initialized"
 )
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping

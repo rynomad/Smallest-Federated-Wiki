@@ -8,7 +8,6 @@ neighborhood = require './neighborhood.coffee'
 addToJournal = require './addToJournal.coffee'
 wiki = require('./wiki.coffee')
 repository = require './repository.coffee'
-sync = require './sync.coffee'
 
 handleDragging = (evt, ui) ->
   itemElement = ui.item

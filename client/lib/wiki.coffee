@@ -2,8 +2,6 @@ createSynopsis = require './synopsis.coffee'
 
 wiki = { createSynopsis }
 
-wiki.persona = require './persona.coffee'
-
 wiki.log = (things...) ->
   console.log things... if console?.log?
 

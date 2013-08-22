@@ -83,7 +83,8 @@ wiki.resolveLinks = (string) ->
           template = {}
           template.childSelector = interest.childSelector
           closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage)
-          face.expressInterest(ccnName, closure, template)    
+          if face.transport.ws != null
+            face.expressInterest(ccnName, closure, template)    
     "<a class=\"internal\" href=\"/#{slug}.html\" data-page-name=\"#{slug}\" title=\"#{wiki.resolutionContext.join(' => ')}\">#{name}</a>"
   string
     .replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink)

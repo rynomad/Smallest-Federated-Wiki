@@ -4,146 +4,7 @@ window.wiki = require('./lib/wiki.coffee');
 require('./lib/legacy.coffee');
 
 
-},{"./lib/legacy.coffee":3,"./lib/wiki.coffee":2}],2:[function(require,module,exports){
-var createSynopsis, wiki,
-  __slice = [].slice;
-
-createSynopsis = require('./synopsis.coffee');
-
-wiki = {
-  createSynopsis: createSynopsis
-};
-
-wiki.log = function() {
-  var things;
-  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
-    return console.log.apply(console, things);
-  }
-};
-
-wiki.asSlug = function(name) {
-  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
-};
-
-wiki.useLocalStorage = function() {
-  return $(".login").length > 0;
-};
-
-wiki.urlToPrefix = function(url) {
-  var component, hostComponents, prefix, _i, _len;
-  prefix = '';
-  hostComponents = url.split('.');
-  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
-    component = hostComponents[_i];
-    if (component !== 'www') {
-      if (component !== 'http://www') {
-        if (component !== 'http://') {
-          prefix = ("/" + component) + prefix;
-        }
-      }
-    }
-  }
-  return prefix;
-};
-
-wiki.resolutionContext = [];
-
-wiki.resolveFrom = function(addition, callback) {
-  wiki.resolutionContext.push(addition);
-  try {
-    return callback();
-  } finally {
-    wiki.resolutionContext.pop();
-  }
-};
-
-wiki.getData = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  } else {
-    who = $('.chart,.data,.calculator').last();
-    if (who != null) {
-      return who.data('item').data;
-    } else {
-      return {};
-    }
-  }
-};
-
-wiki.getDataNodes = function(vis) {
-  var idx, who;
-  if (vis) {
-    idx = $('.item').index(vis);
-    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  } else {
-    who = $('.chart,.data,.calculator').toArray().reverse();
-    return $(who);
-  }
-};
-
-wiki.createPage = function(name, loc, version) {
-  var $page, site;
-  if (loc && loc !== 'view') {
-    site = loc;
-  }
-  console.log(version);
-  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
-  if (version) {
-    $page.data('version', version);
-  }
-  if (site) {
-    $page.find('.page').attr('data-site', site);
-  }
-  console.log($page.find('.page').data('version'));
-  return $page;
-};
-
-wiki.getItem = function(element) {
-  if ($(element).length > 0) {
-    return $(element).data("item") || $(element).data('staticItem');
-  }
-};
-
-wiki.resolveLinks = function(string) {
-  var renderInternalLink;
-  renderInternalLink = function(match, name) {
-    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
-    slug = wiki.asSlug(name);
-    if (navigator.onLine === true) {
-      console.log("online: retrieving pages from rendered links");
-      if (interfaces !== 'server') {
-        _ref = interfaces.active;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          face = _ref[_i];
-          pageURI = face.prefixURI + '/page/' + slug + '.json';
-          ccnName = new Name(pageURI);
-          interest = new Interest(ccnName);
-          interest.childSelector = 1;
-          template = {};
-          template.childSelector = interest.childSelector;
-          closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
-          face.expressInterest(ccnName, closure, template);
-        }
-      }
-    }
-    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
-  };
-  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
-};
-
-module.exports = wiki;
-
-
-},{"./synopsis.coffee":4}],3:[function(require,module,exports){
+},{"./lib/legacy.coffee":2,"./lib/wiki.coffee":3}],2:[function(require,module,exports){
 var active, pageHandler, plugin, refresh, state, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -533,34 +394,148 @@ $(function() {
 });
 
 
-},{"./active.coffee":9,"./interfaces.coffee":11,"./pageHandler.coffee":5,"./plugin.coffee":6,"./refresh.coffee":10,"./state.coffee":8,"./util.coffee":7,"./wiki.coffee":2}],4:[function(require,module,exports){
-module.exports = function(page) {
-  var p1, p2, synopsis;
-  synopsis = page.synopsis;
-  if ((page != null) && (page.story != null)) {
-    p1 = page.story[0];
-    p2 = page.story[1];
-    if (p1 && p1.type === 'paragraph') {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && p2.type === 'paragraph') {
-      synopsis || (synopsis = p2.text);
-    }
-    if (p1 && (p1.text != null)) {
-      synopsis || (synopsis = p1.text);
-    }
-    if (p2 && (p2.text != null)) {
-      synopsis || (synopsis = p2.text);
-    }
-    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
-  } else {
-    synopsis = 'A page with no story.';
-  }
-  return synopsis;
+},{"./active.coffee":7,"./interfaces.coffee":10,"./pageHandler.coffee":5,"./plugin.coffee":8,"./refresh.coffee":9,"./state.coffee":6,"./util.coffee":4,"./wiki.coffee":3}],3:[function(require,module,exports){
+var createSynopsis, wiki,
+  __slice = [].slice;
+
+createSynopsis = require('./synopsis.coffee');
+
+wiki = {
+  createSynopsis: createSynopsis
 };
 
+wiki.log = function() {
+  var things;
+  things = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+  if ((typeof console !== "undefined" && console !== null ? console.log : void 0) != null) {
+    return console.log.apply(console, things);
+  }
+};
 
-},{}],9:[function(require,module,exports){
+wiki.asSlug = function(name) {
+  return name.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
+};
+
+wiki.useLocalStorage = function() {
+  return $(".login").length > 0;
+};
+
+wiki.urlToPrefix = function(url) {
+  var component, hostComponents, prefix, _i, _len;
+  prefix = '';
+  hostComponents = url.split('.');
+  for (_i = 0, _len = hostComponents.length; _i < _len; _i++) {
+    component = hostComponents[_i];
+    if (component !== 'www') {
+      if (component !== 'http://www') {
+        if (component !== 'http://') {
+          prefix = ("/" + component) + prefix;
+        }
+      }
+    }
+  }
+  return prefix;
+};
+
+wiki.resolutionContext = [];
+
+wiki.resolveFrom = function(addition, callback) {
+  wiki.resolutionContext.push(addition);
+  try {
+    return callback();
+  } finally {
+    wiki.resolutionContext.pop();
+  }
+};
+
+wiki.getData = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  } else {
+    who = $('.chart,.data,.calculator').last();
+    if (who != null) {
+      return who.data('item').data;
+    } else {
+      return {};
+    }
+  }
+};
+
+wiki.getDataNodes = function(vis) {
+  var idx, who;
+  if (vis) {
+    idx = $('.item').index(vis);
+    who = $(".item:lt(" + idx + ")").filter('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  } else {
+    who = $('.chart,.data,.calculator').toArray().reverse();
+    return $(who);
+  }
+};
+
+wiki.createPage = function(name, loc, version) {
+  var $page, site;
+  if (loc && loc !== 'view') {
+    site = loc;
+  }
+  console.log(version);
+  $page = $("<div class=\"page\" id=\"" + name + "\">\n  <div class=\"twins\"> <p> </p> </div>\n  <div class=\"header\">\n    <h1> <img class=\"favicon\" src=\"" + (site ? "//" + site : "") + "/favicon.png\" height=\"32px\"> " + name + " </h1>\n  </div>\n</div>");
+  if (version) {
+    $page.data('version', version);
+  }
+  if (site) {
+    $page.find('.page').attr('data-site', site);
+  }
+  console.log($page.find('.page').data('version'));
+  return $page;
+};
+
+wiki.getItem = function(element) {
+  if ($(element).length > 0) {
+    return $(element).data("item") || $(element).data('staticItem');
+  }
+};
+
+wiki.resolveLinks = function(string) {
+  var renderInternalLink;
+  renderInternalLink = function(match, name) {
+    var ccnName, closure, face, interest, pageURI, slug, template, _i, _len, _ref;
+    slug = wiki.asSlug(name);
+    if (navigator.onLine === true) {
+      console.log("online: retrieving pages from rendered links");
+      if (interfaces !== 'server') {
+        _ref = interfaces.active;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          face = _ref[_i];
+          pageURI = face.prefixURI + '/page/' + slug + '.json';
+          ccnName = new Name(pageURI);
+          interest = new Interest(ccnName);
+          interest.childSelector = 1;
+          template = {};
+          template.childSelector = interest.childSelector;
+          closure = new ContentClosure(face, ccnName, interest, wiki.repo.updatePage);
+          if (face.transport.ws !== null) {
+            face.expressInterest(ccnName, closure, template);
+          }
+        }
+      }
+    }
+    return "<a class=\"internal\" href=\"/" + slug + ".html\" data-page-name=\"" + slug + "\" title=\"" + (wiki.resolutionContext.join(' => ')) + "\">" + name + "</a>";
+  };
+  return string.replace(/\[\[([^\]]+)\]\]/gi, renderInternalLink).replace(/\[(http.*?) (.*?)\]/gi, "<a class=\"external\" target=\"_blank\" href=\"$1\" title=\"$1\" rel=\"nofollow\">$2 <img src=\"/images/external-link-ltr-icon.png\"></a>");
+};
+
+module.exports = wiki;
+
+
+},{"./synopsis.coffee":11}],7:[function(require,module,exports){
 var active, findScrollContainer, scrollTo;
 
 module.exports = active = {};
@@ -614,7 +589,277 @@ active.set = function(el) {
 };
 
 
-},{}],6:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
+module.exports = function(page) {
+  var p1, p2, synopsis;
+  synopsis = page.synopsis;
+  if ((page != null) && (page.story != null)) {
+    p1 = page.story[0];
+    p2 = page.story[1];
+    if (p1 && p1.type === 'paragraph') {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && p2.type === 'paragraph') {
+      synopsis || (synopsis = p2.text);
+    }
+    if (p1 && (p1.text != null)) {
+      synopsis || (synopsis = p1.text);
+    }
+    if (p2 && (p2.text != null)) {
+      synopsis || (synopsis = p2.text);
+    }
+    synopsis || (synopsis = (page.story != null) && ("A page with " + page.story.length + " items."));
+  } else {
+    synopsis = 'A page with no story.';
+  }
+  return synopsis;
+};
+
+
+},{}],4:[function(require,module,exports){
+var util, wiki;
+
+wiki = require('./wiki.coffee');
+
+module.exports = wiki.util = util = {};
+
+util.symbols = {
+  create: '☼',
+  add: '+',
+  edit: '✎',
+  fork: '⚑',
+  move: '↕',
+  remove: '✕'
+};
+
+util.randomByte = function() {
+  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
+};
+
+util.randomBytes = function(n) {
+  return ((function() {
+    var _i, _results;
+    _results = [];
+    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
+      _results.push(util.randomByte());
+    }
+    return _results;
+  })()).join('');
+};
+
+util.formatTime = function(time) {
+  var am, d, h, mi, mo;
+  d = new Date((time > 10000000000 ? time : time * 1000));
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
+};
+
+util.formatDate = function(msSinceEpoch) {
+  var am, d, day, h, mi, mo, sec, wk, yr;
+  d = new Date(msSinceEpoch);
+  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  day = d.getDate();
+  yr = d.getFullYear();
+  h = d.getHours();
+  am = h < 12 ? 'AM' : 'PM';
+  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
+};
+
+util.formatElapsedTime = function(msSinceEpoch) {
+  var days, hrs, mins, months, msecs, secs, weeks, years;
+  msecs = new Date().getTime() - msSinceEpoch;
+  if ((secs = msecs / 1000) < 2) {
+    return "" + (Math.floor(msecs)) + " milliseconds ago";
+  }
+  if ((mins = secs / 60) < 2) {
+    return "" + (Math.floor(secs)) + " seconds ago";
+  }
+  if ((hrs = mins / 60) < 2) {
+    return "" + (Math.floor(mins)) + " minutes ago";
+  }
+  if ((days = hrs / 24) < 2) {
+    return "" + (Math.floor(hrs)) + " hours ago";
+  }
+  if ((weeks = days / 7) < 2) {
+    return "" + (Math.floor(days)) + " days ago";
+  }
+  if ((months = days / 31) < 2) {
+    return "" + (Math.floor(weeks)) + " weeks ago";
+  }
+  if ((years = days / 365) < 2) {
+    return "" + (Math.floor(months)) + " months ago";
+  }
+  return "" + (Math.floor(years)) + " years ago";
+};
+
+util.emptyPage = function() {
+  return {
+    title: 'empty',
+    story: [],
+    journal: []
+  };
+};
+
+util.getSelectionPos = function(jQueryElement) {
+  var el, iePos, sel;
+  el = jQueryElement.get(0);
+  if (document.selection) {
+    el.focus();
+    sel = document.selection.createRange();
+    sel.moveStart('character', -el.value.length);
+    iePos = sel.text.length;
+    return {
+      start: iePos,
+      end: iePos
+    };
+  } else {
+    return {
+      start: el.selectionStart,
+      end: el.selectionEnd
+    };
+  }
+};
+
+util.setCaretPosition = function(jQueryElement, caretPos) {
+  var el, range;
+  el = jQueryElement.get(0);
+  if (el != null) {
+    if (el.createTextRange) {
+      range = el.createTextRange();
+      range.move("character", caretPos);
+      range.select();
+    } else {
+      el.setSelectionRange(caretPos, caretPos);
+    }
+    return el.focus();
+  }
+};
+
+
+},{"./wiki.coffee":3}],6:[function(require,module,exports){
+var active, state, wiki,
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+wiki = require('./wiki.coffee');
+
+active = require('./active.coffee');
+
+module.exports = state = {};
+
+state.pagesInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return el.id;
+  }));
+};
+
+state.urlPages = function() {
+  var i;
+  return ((function() {
+    var _i, _len, _ref, _results;
+    _ref = $(location).attr('pathname').split('/');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+      i = _ref[_i];
+      _results.push(i);
+    }
+    return _results;
+  })()).slice(1);
+};
+
+state.locsInDom = function() {
+  return $.makeArray($(".page").map(function(_, el) {
+    return $(el).data('site') || 'view';
+  }));
+};
+
+state.urlLocs = function() {
+  var j, _i, _len, _ref, _results;
+  _ref = $(location).attr('pathname').split('/').slice(1);
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
+    j = _ref[_i];
+    _results.push(j);
+  }
+  return _results;
+};
+
+state.setUrl = function() {
+  var idx, locs, page, pages, url, _ref;
+  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+  if (history && history.pushState) {
+    locs = state.locsInDom();
+    pages = state.pagesInDom();
+    url = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
+        page = pages[idx];
+        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
+      }
+      return _results;
+    })()).join('');
+    if (url !== $(location).attr('pathname')) {
+      return history.pushState(null, null, url);
+    }
+  }
+};
+
+state.show = function(e) {
+  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
+  oldPages = state.pagesInDom();
+  newPages = state.urlPages();
+  oldLocs = state.locsInDom();
+  newLocs = state.urlLocs();
+  if (!location.pathname || location.pathname === '/') {
+    return;
+  }
+  previous = $('.page').eq(0);
+  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
+    name = newPages[idx];
+    if (name !== oldPages[idx]) {
+      old = $('.page').eq(idx);
+      if (old) {
+        old.remove();
+      }
+      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
+    }
+    previous = $('.page').eq(idx);
+  }
+  previous.nextAll().remove();
+  active.set($('.page').last());
+  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
+};
+
+state.first = function() {
+  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
+  state.setUrl();
+  firstUrlPages = state.urlPages();
+  firstUrlLocs = state.urlLocs();
+  oldPages = state.pagesInDom();
+  _results = [];
+  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
+    urlPage = firstUrlPages[idx];
+    if (__indexOf.call(oldPages, urlPage) < 0) {
+      if (urlPage !== '') {
+        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
+      } else {
+        _results.push(void 0);
+      }
+    }
+  }
+  return _results;
+};
+
+
+},{"./active.coffee":7,"./wiki.coffee":3}],8:[function(require,module,exports){
 var getScript, plugin, scripts, util, wiki;
 
 util = require('./util.coffee');
@@ -756,250 +1001,7 @@ window.plugins = {
 };
 
 
-},{"./util.coffee":7,"./wiki.coffee":2}],7:[function(require,module,exports){
-var util, wiki;
-
-wiki = require('./wiki.coffee');
-
-module.exports = wiki.util = util = {};
-
-util.symbols = {
-  create: '☼',
-  add: '+',
-  edit: '✎',
-  fork: '⚑',
-  move: '↕',
-  remove: '✕'
-};
-
-util.randomByte = function() {
-  return (((1 + Math.random()) * 0x100) | 0).toString(16).substring(1);
-};
-
-util.randomBytes = function(n) {
-  return ((function() {
-    var _i, _results;
-    _results = [];
-    for (_i = 1; 1 <= n ? _i <= n : _i >= n; 1 <= n ? _i++ : _i--) {
-      _results.push(util.randomByte());
-    }
-    return _results;
-  })()).join('');
-};
-
-util.formatTime = function(time) {
-  var am, d, h, mi, mo;
-  d = new Date((time > 10000000000 ? time : time * 1000));
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  return "" + h + ":" + mi + " " + am + "<br>" + (d.getDate()) + " " + mo + " " + (d.getFullYear());
-};
-
-util.formatDate = function(msSinceEpoch) {
-  var am, d, day, h, mi, mo, sec, wk, yr;
-  d = new Date(msSinceEpoch);
-  wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-  mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  day = d.getDate();
-  yr = d.getFullYear();
-  h = d.getHours();
-  am = h < 12 ? 'AM' : 'PM';
-  h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  mi = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-  sec = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
-  return "" + wk + " " + mo + " " + day + ", " + yr + "<br>" + h + ":" + mi + ":" + sec + " " + am;
-};
-
-util.formatElapsedTime = function(msSinceEpoch) {
-  var days, hrs, mins, months, msecs, secs, weeks, years;
-  msecs = new Date().getTime() - msSinceEpoch;
-  if ((secs = msecs / 1000) < 2) {
-    return "" + (Math.floor(msecs)) + " milliseconds ago";
-  }
-  if ((mins = secs / 60) < 2) {
-    return "" + (Math.floor(secs)) + " seconds ago";
-  }
-  if ((hrs = mins / 60) < 2) {
-    return "" + (Math.floor(mins)) + " minutes ago";
-  }
-  if ((days = hrs / 24) < 2) {
-    return "" + (Math.floor(hrs)) + " hours ago";
-  }
-  if ((weeks = days / 7) < 2) {
-    return "" + (Math.floor(days)) + " days ago";
-  }
-  if ((months = days / 31) < 2) {
-    return "" + (Math.floor(weeks)) + " weeks ago";
-  }
-  if ((years = days / 365) < 2) {
-    return "" + (Math.floor(months)) + " months ago";
-  }
-  return "" + (Math.floor(years)) + " years ago";
-};
-
-util.emptyPage = function() {
-  return {
-    title: 'empty',
-    story: [],
-    journal: []
-  };
-};
-
-util.getSelectionPos = function(jQueryElement) {
-  var el, iePos, sel;
-  el = jQueryElement.get(0);
-  if (document.selection) {
-    el.focus();
-    sel = document.selection.createRange();
-    sel.moveStart('character', -el.value.length);
-    iePos = sel.text.length;
-    return {
-      start: iePos,
-      end: iePos
-    };
-  } else {
-    return {
-      start: el.selectionStart,
-      end: el.selectionEnd
-    };
-  }
-};
-
-util.setCaretPosition = function(jQueryElement, caretPos) {
-  var el, range;
-  el = jQueryElement.get(0);
-  if (el != null) {
-    if (el.createTextRange) {
-      range = el.createTextRange();
-      range.move("character", caretPos);
-      range.select();
-    } else {
-      el.setSelectionRange(caretPos, caretPos);
-    }
-    return el.focus();
-  }
-};
-
-
-},{"./wiki.coffee":2}],8:[function(require,module,exports){
-var active, state, wiki,
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-wiki = require('./wiki.coffee');
-
-active = require('./active.coffee');
-
-module.exports = state = {};
-
-state.pagesInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return el.id;
-  }));
-};
-
-state.urlPages = function() {
-  var i;
-  return ((function() {
-    var _i, _len, _ref, _results;
-    _ref = $(location).attr('pathname').split('/');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-      i = _ref[_i];
-      _results.push(i);
-    }
-    return _results;
-  })()).slice(1);
-};
-
-state.locsInDom = function() {
-  return $.makeArray($(".page").map(function(_, el) {
-    return $(el).data('site') || 'view';
-  }));
-};
-
-state.urlLocs = function() {
-  var j, _i, _len, _ref, _results;
-  _ref = $(location).attr('pathname').split('/').slice(1);
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i += 2) {
-    j = _ref[_i];
-    _results.push(j);
-  }
-  return _results;
-};
-
-state.setUrl = function() {
-  var idx, locs, page, pages, url, _ref;
-  document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-  if (history && history.pushState) {
-    locs = state.locsInDom();
-    pages = state.pagesInDom();
-    url = ((function() {
-      var _i, _len, _results;
-      _results = [];
-      for (idx = _i = 0, _len = pages.length; _i < _len; idx = ++_i) {
-        page = pages[idx];
-        _results.push("/" + ((locs != null ? locs[idx] : void 0) || 'view') + "/" + page);
-      }
-      return _results;
-    })()).join('');
-    if (url !== $(location).attr('pathname')) {
-      return history.pushState(null, null, url);
-    }
-  }
-};
-
-state.show = function(e) {
-  var idx, name, newLocs, newPages, old, oldLocs, oldPages, previous, _i, _len, _ref;
-  oldPages = state.pagesInDom();
-  newPages = state.urlPages();
-  oldLocs = state.locsInDom();
-  newLocs = state.urlLocs();
-  if (!location.pathname || location.pathname === '/') {
-    return;
-  }
-  previous = $('.page').eq(0);
-  for (idx = _i = 0, _len = newPages.length; _i < _len; idx = ++_i) {
-    name = newPages[idx];
-    if (name !== oldPages[idx]) {
-      old = $('.page').eq(idx);
-      if (old) {
-        old.remove();
-      }
-      wiki.createPage(name, newLocs[idx]).insertAfter(previous).each(wiki.refresh);
-    }
-    previous = $('.page').eq(idx);
-  }
-  previous.nextAll().remove();
-  active.set($('.page').last());
-  return document.title = (_ref = $('.page:last').data('data')) != null ? _ref.title : void 0;
-};
-
-state.first = function() {
-  var firstUrlLocs, firstUrlPages, idx, oldPages, urlPage, _i, _len, _results;
-  state.setUrl();
-  firstUrlPages = state.urlPages();
-  firstUrlLocs = state.urlLocs();
-  oldPages = state.pagesInDom();
-  _results = [];
-  for (idx = _i = 0, _len = firstUrlPages.length; _i < _len; idx = ++_i) {
-    urlPage = firstUrlPages[idx];
-    if (__indexOf.call(oldPages, urlPage) < 0) {
-      if (urlPage !== '') {
-        _results.push(wiki.createPage(urlPage, firstUrlLocs[idx]).appendTo('.main'));
-      } else {
-        _results.push(void 0);
-      }
-    }
-  }
-  return _results;
-};
-
-
-},{"./active.coffee":9,"./wiki.coffee":2}],11:[function(require,module,exports){
+},{"./util.coffee":4,"./wiki.coffee":3}],10:[function(require,module,exports){
 var interestHandler, repo;
 
 repo = require('./repository.coffee');
@@ -1315,7 +1317,7 @@ pageHandler.put = function(pageElement, action) {
 };
 
 
-},{"./addToJournal.coffee":14,"./repository.coffee":12,"./revision.coffee":13,"./state.coffee":8,"./util.coffee":7,"./wiki.coffee":2,"underscore":15}],10:[function(require,module,exports){
+},{"./addToJournal.coffee":14,"./repository.coffee":12,"./revision.coffee":13,"./state.coffee":6,"./util.coffee":4,"./wiki.coffee":3,"underscore":15}],9:[function(require,module,exports){
 var addToJournal, buildPageHeader, createFactory, emitHeader, emitTwins, handleDragging, initAddButton, initDragging, neighborhood, pageHandler, plugin, refresh, renderPageIntoPageElement, repository, state, util, wiki, _,
   __slice = [].slice;
 
@@ -1679,7 +1681,7 @@ module.exports = refresh = wiki.refresh = function() {
 };
 
 
-},{"./addToJournal.coffee":14,"./neighborhood.coffee":16,"./pageHandler.coffee":5,"./plugin.coffee":6,"./repository.coffee":12,"./state.coffee":8,"./util.coffee":7,"./wiki.coffee":2,"underscore":15}],15:[function(require,module,exports){
+},{"./addToJournal.coffee":14,"./neighborhood.coffee":16,"./pageHandler.coffee":5,"./plugin.coffee":8,"./repository.coffee":12,"./state.coffee":6,"./util.coffee":4,"./wiki.coffee":3,"underscore":15}],15:[function(require,module,exports){
 (function(){//     Underscore.js 1.5.1
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2994,35 +2996,7 @@ create = function(revIndex, data) {
 exports.create = create;
 
 
-},{}],14:[function(require,module,exports){
-var util;
-
-util = require('./util.coffee');
-
-module.exports = function(journalElement, action) {
-  var actionElement, actionTitle, controls, pageElement, prev;
-  pageElement = journalElement.parents('.page:first');
-  if (action.type === 'edit') {
-    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
-  }
-  actionTitle = action.type;
-  if (action.date != null) {
-    actionTitle += " " + (util.formatElapsedTime(action.date));
-  }
-  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
-  controls = journalElement.children('.control-buttons');
-  if (controls.length > 0) {
-    actionElement.insertBefore(controls);
-  } else {
-    actionElement.appendTo(journalElement);
-  }
-  if (action.type === 'fork' && (action.site != null)) {
-    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
-  }
-};
-
-
-},{"./util.coffee":7}],12:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /* Page Mirroring with IndexedDB*/
 
 var pageStoreOpts, pageToContentObject, plugin, repo, repository, revision, status, statusOpts;
@@ -3364,7 +3338,35 @@ repository = new IDBStore(pageStoreOpts, function() {
 });
 
 
-},{"./plugin.coffee":6,"./revision.coffee":13}],16:[function(require,module,exports){
+},{"./plugin.coffee":8,"./revision.coffee":13}],14:[function(require,module,exports){
+var util;
+
+util = require('./util.coffee');
+
+module.exports = function(journalElement, action) {
+  var actionElement, actionTitle, controls, pageElement, prev;
+  pageElement = journalElement.parents('.page:first');
+  if (action.type === 'edit') {
+    prev = journalElement.find(".edit[data-id=" + (action.id || 0) + "]");
+  }
+  actionTitle = action.type;
+  if (action.date != null) {
+    actionTitle += " " + (util.formatElapsedTime(action.date));
+  }
+  actionElement = $("<a href=\"#\" /> ").addClass("action").addClass(action.type).text(util.symbols[action.type]).attr('title', actionTitle).attr('data-id', action.id || "0").data('action', action);
+  controls = journalElement.children('.control-buttons');
+  if (controls.length > 0) {
+    actionElement.insertBefore(controls);
+  } else {
+    actionElement.appendTo(journalElement);
+  }
+  if (action.type === 'fork' && (action.site != null)) {
+    return actionElement.css("background-image", "url(//" + action.site + "/favicon.png)").attr("href", "//" + action.site + "/" + (pageElement.attr('id')) + ".html").data("site", action.site).data("slug", pageElement.attr('id'));
+  }
+};
+
+
+},{"./util.coffee":4}],16:[function(require,module,exports){
 var active, createSearch, neighborhood, nextAvailableFetch, nextFetchInterval, populateSiteInfoFor, util, wiki, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -3515,7 +3517,7 @@ $(function() {
 });
 
 
-},{"./active.coffee":9,"./search.coffee":17,"./util.coffee":7,"./wiki.coffee":2,"underscore":15}],17:[function(require,module,exports){
+},{"./active.coffee":7,"./search.coffee":17,"./util.coffee":4,"./wiki.coffee":3,"underscore":15}],17:[function(require,module,exports){
 var active, createSearch, util, wiki;
 
 wiki = require('./wiki.coffee');
@@ -3570,5 +3572,5 @@ createSearch = function(_arg) {
 module.exports = createSearch;
 
 
-},{"./active.coffee":9,"./util.coffee":7,"./wiki.coffee":2}]},{},[1])
+},{"./active.coffee":7,"./util.coffee":4,"./wiki.coffee":3}]},{},[1])
 ;

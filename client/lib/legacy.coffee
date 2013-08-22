@@ -249,7 +249,7 @@ $ ->
         unless wiki.useLocalStorage()
           item = pageElement.data('data')
           pageElement.removeClass('local')
-          pageHandler.put pageElement, {type: 'fork', item} # push
+          pageHandler.put pageElement, {type: 'fork'} # push
       else
         if (remoteSite = pageElement.data('site'))?
           pageHandler.put pageElement, {type:'fork', site: remoteSite} # pull

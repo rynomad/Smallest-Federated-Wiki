@@ -233,6 +233,7 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
 
 status = new IDBStore(statusOpts)
 repository = new IDBStore(pageStoreOpts, () ->
+  ###
   if navigator.onLine == true
     console.log "online: announcing pages"
     fetchPages = (pages) ->
@@ -244,6 +245,7 @@ repository = new IDBStore(pageStoreOpts, () ->
     repository.getAll(fetchPages)
   else
     console.log "offline: repository index initialized"
+  ###
 )
 # Take a page JSON object and convert it to an entry with string uri and NDN contentObject
 # TODO: segmentation and timestamping

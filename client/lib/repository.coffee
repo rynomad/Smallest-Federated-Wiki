@@ -126,8 +126,10 @@ wiki.repo.updatePageFromPeer = (json) ->
 
 repo.sendUpdateNotifier = (json) ->
   for face in interfaces.active
-    prefix = wiki.urlToPrefix(face.host)
+    prefix = wiki.urlToPrefix(face.prefixURI)
     uri = prefix + "/page/update/" + json.page + '/' + json.version
+    console.log uri
+    
     name = new Name(uri)
     template = {}
     template.childSelector = 1

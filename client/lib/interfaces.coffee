@@ -59,6 +59,7 @@ interfaces.registerFace = (url) ->
   for component in hostComponents
     if component != 'www' && component != 'http://www' && component != 'http://'
       hostPrefix = "/#{component}" + hostPrefix
+  hostPrefix = "wiki"
   prefix = new Name(hostPrefix)
   face.prefixURI = hostPrefix
   face.prefix = prefix

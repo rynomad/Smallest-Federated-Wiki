@@ -467,7 +467,7 @@ module.exports = exports = (argv) ->
   setOwner null, (e) ->
     # Throw if you can't find the initial owner
     if e then throw e
-    server = app.listen argv.p, argv.o, ->
+    server = app.listen argv.p, '::', ->
       app.emit 'listening'
       loga "Smallest Federated Wiki server listening on", argv.p, "in mode:", app.settings.env
     ### Plugins ###

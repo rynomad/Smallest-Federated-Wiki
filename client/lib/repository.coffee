@@ -155,8 +155,8 @@ wiki.repo.updatePage = (json) ->
         autoIncrement: false,
         onStoreReady: () ->
           json.version = json.journal[json.journal.length - 1].date
-          for version in json.excludes
-            page.remove (version)
+          for version in json.journal
+            page.remove (version.date)
           console.log "updating ", json.title
           onSuccess = () ->
             wiki.emitTwins($("##{wiki.asSlug(json.title)}"))

@@ -185,7 +185,7 @@ ContentClosure.prototype.upcall = function(kind, upcallInfo) {
                 (0, contentObject.name.components.length );
             //console.log(components);
             var version = DataUtils.toString(components[2])
-            this.callback(this.fullcontent,version);
+            this.callback(JSON.parse(this.fullcontent));
 	    
             return Closure.RESULT_OK;
         }

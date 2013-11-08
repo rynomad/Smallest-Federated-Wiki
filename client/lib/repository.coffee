@@ -141,7 +141,8 @@ repo.sendUpdateNotifier = (json) ->
 wiki.repo.updatePage = (json) ->
   if json?
     repository = new IDBStore(pageStoreOpts, () ->
-      console.log json.page
+      if json.page == undefined
+        json.page = wiki.asSlug(json.title) + ".json"
       console.log repository
       onSuccess = () ->
         console.log "success!"
@@ -194,7 +195,7 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
     keyPath: 'version',
     autoIncrement: false,
     onStoreReady: () ->
-      name = "/localhost/page/#{pageInformation.slug}.json"
+      name = "/wiki/page/#{pageInformation.slug}.json"
       if pageInformation.version?
         console.log 'requesting specific version', pageInformation
         page.get(pageInformation.version, (page) ->

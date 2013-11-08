@@ -125,6 +125,7 @@ wiki.resolveLinks = function(string) {
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           face = _ref[_i];
           pageURI = face.prefixURI + '/page/' + slug + '.json';
+          console.log(pageURI);
           ccnName = new Name(pageURI);
           interest = new Interest(ccnName);
           interest.childSelector = 1;
@@ -3249,7 +3250,9 @@ wiki.repo.updatePage = function(json) {
   if (json != null) {
     return repository = new IDBStore(pageStoreOpts, function() {
       var onError, onSuccess, page;
-      console.log(json.page);
+      if (json.page === void 0) {
+        json.page = wiki.asSlug(json.title) + ".json";
+      }
       console.log(repository);
       onSuccess = function() {
         return console.log("success!");
@@ -3319,7 +3322,7 @@ repo.getPage = function(pageInformation, whenGotten, whenNotGotten) {
     autoIncrement: false,
     onStoreReady: function() {
       var found, name, onCheckEnd1, onCheckEnd2, onItem1, onItem2;
-      name = "/localhost/page/" + pageInformation.slug + ".json";
+      name = "/wiki/page/" + pageInformation.slug + ".json";
       if (pageInformation.version != null) {
         console.log('requesting specific version', pageInformation);
         return page.get(pageInformation.version, function(page) {

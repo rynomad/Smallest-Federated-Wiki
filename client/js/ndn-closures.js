@@ -304,6 +304,7 @@ var SegmentStore = function SegmentStore() {
 
 SegmentStore.prototype.storeContent = function(segmentNumber, contentObject) {
     // We don't expect to try to store a segment that has already been retrieved, but check anyway.
+    console.log("segmentNumber: ",segmentNumber," content: ", contentObject);
     if (segmentNumber > this.maxRetrievedSegmentNumber)
         this.store.set(segmentNumber, contentObject);
 };

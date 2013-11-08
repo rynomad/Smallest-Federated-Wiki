@@ -15,7 +15,7 @@ interestHandler = (face, upcallInfo) ->
     if interest.matches_name(new Name(interest.name.to_uri() + '/' + data.version)) == true && sent == false
       console.log data
       string = JSON.stringify(data)
-      console.log string
+      
       co = new ContentObject(new Name(upcallInfo.interest.name.to_uri() + '/' + data.version), signed, string, new Signature())
       console.log co
       co.signedInfo.freshnessSeconds = 604800

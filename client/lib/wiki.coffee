@@ -77,6 +77,7 @@ wiki.resolveLinks = (string) ->
       if interfaces != 'server'
         for face in interfaces.active
           pageURI = face.prefixURI + '/page/' + slug + '.json'
+          console.log pageURI
           ccnName = new Name(pageURI)
           interest = new Interest(ccnName)
           interest.childSelector = 1

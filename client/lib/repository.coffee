@@ -204,17 +204,21 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
         )
       else
         found = false
+        console.log "starting to get page"
         onItem1 = (content, cursor, transaction) ->
-          console.log content
           if content != null
+            console.log content.favicon.length, repo.favicon.length
             if content.favicon == repo.favicon
+              console.log "the favicons match, but I may've already rendered the page for some unholy reason?"
               if found == false
                 found = true
+                console.log content.favicon, repo.favicon, "I think this is your page that I'm rendering"
                 whenGotten(content)
         onItem2 = (content, cursor, transaction) ->
           if content != null
             if found == false
               found = true
+              console.log content.favicon.length, repo.favicon.length, "I think this is NOT your page that I'm rendering"
               whenGotten(content)
         onCheckEnd1 = () ->
           if found == false
@@ -227,9 +231,10 @@ repo.getPage = (pageInformation, whenGotten, whenNotGotten) ->
           if found == false
             console.log 'Didnt Find Page!'
             whenNotGotten() if whenNotGotten?
+        console.log "about to iterate first time"
         page.iterate(onItem1, {
           order: 'DESC',
-          onEnd: onCheckEnd1()
+          onEnd: onCheckEnd1
         })
   })
 
